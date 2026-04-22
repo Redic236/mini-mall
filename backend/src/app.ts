@@ -1,0 +1,33 @@
+import express, { Application } from 'express';
+import { corsMiddleware } from './middleware/cors';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { apiRateLimiter, writeRateLimiter } from './middleware/rateLimit';
+import apiRouter from './routes';
+
+export function createApp(): Application {
+  const app = express();
+
+  // Needed for correct client IP when behind a proxy (nginx, etc.)
+  app.set('trust proxy', 1);
+
+  app.use(corsMiddleware);
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // Global limiter on all API routes
+  app.use('/api', apiRateLimiter);
+
+  // Stricter limiter on write paths (orders + address mutations)
+  app.use('/api/orders', writeRateLimiter);
+  app.use('/api/addresses', (req, res, next) => {
+    if (req.method === 'GET') return next();
+    return writeRateLimiter(req, res, next);
+  });
+
+  app.use('/api', apiRouter);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+}

@@ -1,0 +1,66 @@
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T | null;
+  message: string | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string | null;
+  image: string | null;
+  stock: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CartItem {
+  id: number;
+  productId: number;
+  quantity: number;
+  product?: Product;
+}
+
+export interface CartSummary {
+  items: CartItem[];
+  totalPrice: number;
+  totalQuantity: number;
+}
+
+export interface Address {
+  id: number;
+  name: string;
+  phone: string;
+  province: string;
+  city: string;
+  district: string;
+  detail: string;
+  isDefault: boolean;
+}
+
+export type AddressInput = Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean };
+
+export interface OrderItem {
+  id: number;
+  orderId: number;
+  productId: number;
+  quantity: number;
+  price: number;
+  product?: Product;
+}
+
+export const ORDER_STATUS_VALUES = ['待支付', '已支付', '已发货', '已完成', '已取消'] as const;
+export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
+
+export interface Order {
+  id: number;
+  orderNo: string;
+  addressId: number;
+  totalAmount: number;
+  status: OrderStatus;
+  items?: OrderItem[];
+  address?: Address;
+  createdAt?: string;
+}
