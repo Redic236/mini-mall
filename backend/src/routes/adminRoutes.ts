@@ -7,6 +7,8 @@ const router = Router();
 
 // requireAuth + requireAdmin are applied at the mount point (routes/index.ts).
 router.get('/stats', adminController.stats);
+// Keep /stats/history under /stats so nav grouping stays obvious.
+router.get('/stats/history', adminController.statsHistory);
 
 router.get('/orders', adminController.listOrders);
 router.put('/orders/:id/ship', adminController.shipOrder);

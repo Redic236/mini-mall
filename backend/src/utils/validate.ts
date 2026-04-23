@@ -137,6 +137,10 @@ export const shipmentEventBodySchema = z.object({
   happenedAt: z.coerce.date().optional(),
 });
 
+export const adminStatsHistoryQuerySchema = z.object({
+  days: z.coerce.number().int().min(2).max(30).default(7),
+});
+
 // Admin
 export const adminOrderListQuerySchema = z.object({
   status: z.enum(['待支付', '已支付', '已发货', '已完成', '已取消']).optional(),

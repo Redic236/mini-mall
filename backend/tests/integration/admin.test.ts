@@ -18,6 +18,7 @@ describe('Admin API', () => {
   describe('auth gating', () => {
     const cases = [
       ['GET', '/api/admin/stats'],
+      ['GET', '/api/admin/stats/history'],
       ['GET', '/api/admin/orders'],
       ['PUT', '/api/admin/orders/1/ship'],
       ['GET', '/api/admin/products'],
@@ -56,6 +57,37 @@ describe('Admin API', () => {
         lowStockCount: expect.any(Number),
       });
       expect(res.body.data.totalProducts).toBe(3);
+    });
+  });
+
+  describe('GET /api/admin/stats/history', () => {
+    it('returns 7 days of zeros when no orders exist', async () => {
+      const res = await request(getApp()).get('/api/admin/stats/history').set(...admin.authHeader);
+      expect(res.status).toBe(200);
+      expect(res.body.data.days).toBe(7);
+      expect(res.body.data.ordersPerDay).toHaveLength(7);
+      expect(res.body.data.revenuePerDay).toHaveLength(7);
+      expect(res.body.data.ordersPerDay.every((p: { value: number }) => p.value === 0)).toBe(true);
+    });
+
+    it('reflects today\'s orders in the last bucket', async () => {
+      await request(getApp()).post('/api/cart').set(...regular.authHeader).send({ productId: data.products[0].id, quantity: 1 });
+      const cart = await request(getApp()).get('/api/cart').set(...regular.authHeader);
+      await request(getApp()).post('/api/orders').set(...regular.authHeader).send({
+        addressId: data.address!.get('id'),
+        cartItemIds: cart.body.data.items.map((it: { id: number }) => it.id),
+      });
+
+      const res = await request(getApp()).get('/api/admin/stats/history?days=7').set(...admin.authHeader);
+      const last = res.body.data.ordersPerDay[6] as { date: string; value: number };
+      expect(last.value).toBe(1);
+    });
+
+    it('rejects days outside [2, 30]', async () => {
+      const low = await request(getApp()).get('/api/admin/stats/history?days=1').set(...admin.authHeader);
+      expect(low.status).toBe(400);
+      const high = await request(getApp()).get('/api/admin/stats/history?days=100').set(...admin.authHeader);
+      expect(high.status).toBe(400);
     });
   });
 

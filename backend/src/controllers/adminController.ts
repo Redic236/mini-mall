@@ -6,6 +6,7 @@ import { ok } from '../utils/apiResponse';
 import {
   adminOrderListQuerySchema,
   adminProductBodySchema,
+  adminStatsHistoryQuerySchema,
   idSchema,
   parseOrThrow,
 } from '../utils/validate';
@@ -13,6 +14,15 @@ import {
 export async function stats(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     res.json(ok(await adminService.getStats()));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function statsHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { days } = parseOrThrow(adminStatsHistoryQuerySchema, req.query);
+    res.json(ok(await adminService.getStatsHistory(days)));
   } catch (err) {
     next(err);
   }

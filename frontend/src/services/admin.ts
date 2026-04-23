@@ -36,6 +36,23 @@ export async function fetchAdminStats(): Promise<AdminStats> {
   return unwrap<AdminStats>(http.get<ApiResponse<AdminStats>>('/admin/stats'));
 }
 
+export interface DailyPoint {
+  date: string;
+  value: number;
+}
+
+export interface StatsHistory {
+  days: number;
+  ordersPerDay: DailyPoint[];
+  revenuePerDay: DailyPoint[];
+}
+
+export async function fetchAdminStatsHistory(days = 7): Promise<StatsHistory> {
+  return unwrap<StatsHistory>(
+    http.get<ApiResponse<StatsHistory>>('/admin/stats/history', { params: { days } }),
+  );
+}
+
 export async function fetchAdminOrders(query: AdminOrderListQuery = {}): Promise<AdminOrderListResult> {
   const res = await http.get<ApiResponse<Order[]>>('/admin/orders', { params: query });
   const body = res.data;

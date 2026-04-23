@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { Address, Order, OrderItem, ORDER_STATUS, Product, SHIPMENT_STATUS } from '../models';
 import type { OrderStatus } from '../models';
 import { sequelize } from '../config/database';
@@ -49,6 +49,70 @@ export async function getStats(): Promise<AdminStats> {
     pendingShipmentCount,
     totalProducts,
     lowStockCount,
+  };
+}
+
+export interface DailyPoint {
+  date: string; // YYYY-MM-DD in UTC
+  value: number;
+}
+
+export interface StatsHistory {
+  days: number;
+  ordersPerDay: DailyPoint[];
+  revenuePerDay: DailyPoint[];
+}
+
+/**
+ * Build a `days`-long daily time series for the dashboard sparklines.
+ * Orders count: includes every status (cancellations are signal too).
+ * Revenue: only non-cancelled, non-pending orders — mirrors how getStats
+ * sums totalRevenue. Missing days are filled with zeros so the polyline
+ * doesn't skip.
+ */
+export async function getStatsHistory(days: number): Promise<StatsHistory> {
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - (days - 1));
+
+  const rawOrders = await sequelize.query<{ day: string; count: number | string }>(
+    `SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS day, COUNT(*) AS count
+       FROM orders
+      WHERE createdAt >= :since
+      GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+    { replacements: { since }, type: QueryTypes.SELECT },
+  );
+  const rawRevenue = await sequelize.query<{ day: string; amount: number | string }>(
+    `SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS day,
+            COALESCE(SUM(totalAmount), 0) AS amount
+       FROM orders
+      WHERE createdAt >= :since
+        AND status IN ('已支付', '已发货', '已完成')
+      GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+    { replacements: { since }, type: QueryTypes.SELECT },
+  );
+
+  const fill = (rows: Array<{ day: string; value: number | string }>): DailyPoint[] => {
+    const byDay = new Map<string, number>();
+    for (const r of rows) byDay.set(r.day, Number(r.value));
+    const result: DailyPoint[] = [];
+    const cursor = new Date(since);
+    for (let i = 0; i < days; i += 1) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      result.push({ date: dateStr, value: byDay.get(dateStr) ?? 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return result;
+  };
+
+  return {
+    days,
+    ordersPerDay: fill(
+      rawOrders.map((r) => ({ day: r.day, value: Number(r.count) })),
+    ),
+    revenuePerDay: fill(
+      rawRevenue.map((r) => ({ day: r.day, value: Number(r.amount) })),
+    ),
   };
 }
 
