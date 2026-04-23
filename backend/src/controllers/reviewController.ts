@@ -5,6 +5,7 @@ import { ok } from '../utils/apiResponse';
 import {
   createReviewBodySchema,
   idSchema,
+  myReviewsQuerySchema,
   parseOrThrow,
   reviewListQuerySchema,
   updateReviewBodySchema,
@@ -14,6 +15,16 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
   try {
     const query = parseOrThrow(reviewListQuerySchema, req.query);
     const result = await reviewService.listReviews(query);
+    res.json(ok(result));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mine(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const query = parseOrThrow(myReviewsQuerySchema, req.query);
+    const result = await reviewService.listMyReviews(getUserId(req), query);
     res.json(ok(result));
   } catch (err) {
     next(err);

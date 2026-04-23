@@ -1,6 +1,7 @@
 import { http, unwrap } from './http';
 import type {
   ApiResponse,
+  MyReviewsResult,
   Review,
   ReviewEligibility,
   ReviewListResult,
@@ -20,6 +21,12 @@ export interface ReviewUpdateInput {
 export async function fetchReviews(productId: number, page = 1, limit = 10): Promise<ReviewListResult> {
   return unwrap<ReviewListResult>(
     http.get<ApiResponse<ReviewListResult>>('/reviews', { params: { productId, page, limit } }),
+  );
+}
+
+export async function fetchMyReviews(page = 1, limit = 10): Promise<MyReviewsResult> {
+  return unwrap<MyReviewsResult>(
+    http.get<ApiResponse<MyReviewsResult>>('/reviews/mine', { params: { page, limit } }),
   );
 }
 

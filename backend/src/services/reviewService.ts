@@ -133,6 +133,30 @@ export async function deleteReview(userId: number, id: number): Promise<void> {
   });
 }
 
+export interface MyReviewsOptions {
+  page: number;
+  limit: number;
+}
+
+export interface MyReviewsResult {
+  items: Review[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function listMyReviews(userId: number, options: MyReviewsOptions): Promise<MyReviewsResult> {
+  const offset = (options.page - 1) * options.limit;
+  const { rows, count } = await Review.findAndCountAll({
+    where: { userId },
+    include: [{ model: Product, as: 'product' }],
+    order: [['id', 'DESC']],
+    limit: options.limit,
+    offset,
+  });
+  return { items: rows, total: count, page: options.page, limit: options.limit };
+}
+
 export async function listReviews(options: ReviewListOptions): Promise<ReviewListResult> {
   const offset = (options.page - 1) * options.limit;
 

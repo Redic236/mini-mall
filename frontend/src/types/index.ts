@@ -106,6 +106,14 @@ export interface Review {
   createdAt?: string;
   updatedAt?: string;
   user?: ReviewAuthor;
+  product?: Product;
+}
+
+export interface MyReviewsResult {
+  items: Review[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface ReviewListResult {

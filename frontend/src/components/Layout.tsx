@@ -29,6 +29,8 @@ export default function Layout(): JSX.Element {
   };
 
   const userMenu: MenuProps['items'] = [
+    { key: 'my-reviews', label: '我的评价', onClick: () => navigate('/my-reviews') },
+    { type: 'divider' },
     { key: 'logout', label: '退出登录', onClick: handleLogout },
   ];
 

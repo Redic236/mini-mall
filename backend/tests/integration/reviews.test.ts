@@ -231,6 +231,52 @@ describe('Reviews API', () => {
     });
   });
 
+  describe('GET /api/reviews/mine', () => {
+    it('rejects unauthenticated requests', async () => {
+      const res = await request(getApp()).get('/api/reviews/mine');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns the caller\'s own reviews only, paginated', async () => {
+      const pid = data.products[0].id;
+      const pid2 = data.products[1].id;
+
+      await completeOrderWith(me, data, [pid, pid2]);
+      await request(getApp()).post('/api/reviews').set(...me.authHeader).send({ productId: pid, rating: 5, content: 'a' });
+      await request(getApp()).post('/api/reviews').set(...me.authHeader).send({ productId: pid2, rating: 3, content: 'b' });
+
+      // A second user writes their own review — must not leak.
+      const other = await createUser();
+      await completeOrderWith(other, data, [pid]);
+      await request(getApp()).post('/api/reviews').set(...other.authHeader).send({ productId: pid, rating: 1, content: 'bad' });
+
+      const res = await request(getApp()).get('/api/reviews/mine').set(...me.authHeader);
+      expect(res.status).toBe(200);
+      expect(res.body.data.total).toBe(2);
+      expect(res.body.data.items).toHaveLength(2);
+      expect(res.body.data.items.every((r: { userId: number }) => r.userId === data.user!.get('id'))).toBe(true);
+      // Results include the related product so the page can render a card.
+      expect(res.body.data.items[0].product).toBeTruthy();
+    });
+
+    it('honors page + limit', async () => {
+      const pid = data.products[0].id;
+      const pid2 = data.products[1].id;
+      const pid3 = data.products[2].id;
+      await completeOrderWith(me, data, [pid, pid2, pid3]);
+      for (const id of [pid, pid2, pid3]) {
+        await request(getApp()).post('/api/reviews').set(...me.authHeader).send({ productId: id, rating: 4 });
+      }
+
+      const page1 = await request(getApp()).get('/api/reviews/mine?limit=2&page=1').set(...me.authHeader);
+      expect(page1.body.data.items).toHaveLength(2);
+      expect(page1.body.data.total).toBe(3);
+
+      const page2 = await request(getApp()).get('/api/reviews/mine?limit=2&page=2').set(...me.authHeader);
+      expect(page2.body.data.items).toHaveLength(1);
+    });
+  });
+
   describe('GET /api/reviews/eligibility', () => {
     it('returns canReview=false before any order', async () => {
       const res = await request(getApp())

@@ -54,6 +54,11 @@ export const reviewListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(10),
 });
 
+export const myReviewsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().max(1000).default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
+});
+
 // Products
 export const productListQuerySchema = z.object({
   keyword: z.string().trim().min(1).max(100).optional(),

@@ -7,6 +7,7 @@ import Cart from '@/pages/Cart';
 import OrderConfirm from '@/pages/OrderConfirm';
 import OrderList from '@/pages/OrderList';
 import AddressManagement from '@/pages/AddressManagement';
+import MyReviews from '@/pages/MyReviews';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 
@@ -48,6 +49,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <AddressManagement />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'my-reviews',
+        element: (
+          <RequireAuth>
+            <MyReviews />
           </RequireAuth>
         ),
       },
