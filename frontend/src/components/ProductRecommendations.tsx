@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Row, Skeleton, Tag, Typography } from 'antd';
+import { Card, Col, Row, Skeleton, Space, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import { fetchRecommendations, type ProductRecommendation } from '@/services/product';
 import { formatCNY } from '@/utils/format';
@@ -36,17 +36,14 @@ export default function ProductRecommendations({ productId }: Props): JSX.Elemen
   }
   if (recs.length === 0) return null;
 
-  const source = recs[0]?.source;
-
+  // The rec list is homogeneous today (backend returns either all 'cf' or
+  // all 'category-fallback'), but tagging per-item keeps the UI honest the
+  // moment the backend starts mixing sources — a future change won't
+  // accidentally mislabel the whole rail off recs[0].
   return (
     <div style={{ marginTop: 32 }}>
       <Typography.Title level={4} style={{ marginBottom: 12 }}>
         猜你喜欢
-        {source === 'category-fallback' && (
-          <Tag color="default" style={{ marginLeft: 8, fontSize: 12 }}>
-            同类热卖
-          </Tag>
-        )}
       </Typography.Title>
       <Row gutter={[12, 12]}>
         {recs.map((r) => (
@@ -73,9 +70,16 @@ export default function ProductRecommendations({ productId }: Props): JSX.Elemen
                     </Typography.Text>
                   }
                   description={
-                    <Typography.Text strong style={{ color: '#1677ff', fontSize: 13 }}>
-                      {formatCNY(r.product.price)}
-                    </Typography.Text>
+                    <Space size={6} style={{ width: '100%' }} wrap>
+                      <Typography.Text strong style={{ color: '#1677ff', fontSize: 13 }}>
+                        {formatCNY(r.product.price)}
+                      </Typography.Text>
+                      {r.source === 'category-fallback' && (
+                        <Tag color="default" style={{ fontSize: 11 }}>
+                          同类热卖
+                        </Tag>
+                      )}
+                    </Space>
                   }
                 />
               </Card>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Space, Typography, message } from 'antd';
+import { Alert, Button, Card, Descriptions, Skeleton, Space, Typography, message } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   fetchPayment,
@@ -58,7 +58,11 @@ export default function Checkout(): JSX.Element {
     return <Alert type="error" message={error} />;
   }
   if (!payment) {
-    return <div>加载中…</div>;
+    return (
+      <Card style={{ maxWidth: 560 }}>
+        <Skeleton active paragraph={{ rows: 4 }} />
+      </Card>
+    );
   }
 
   if (payment.status !== 'pending') {

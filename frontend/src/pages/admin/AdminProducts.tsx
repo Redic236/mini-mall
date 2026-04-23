@@ -21,6 +21,7 @@ import {
 } from '@/services/admin';
 import type { Product } from '@/types';
 import { formatCNY } from '@/utils/format';
+import { LOW_STOCK_ADMIN } from '@/utils/stockThresholds';
 
 interface DrawerState {
   open: boolean;
@@ -107,7 +108,7 @@ export default function AdminProducts(): JSX.Element {
       dataIndex: 'stock',
       width: 100,
       render: (v: number) => (
-        <span style={{ color: v < 10 ? '#ff4d4f' : undefined }}>{v}</span>
+        <span style={{ color: v < LOW_STOCK_ADMIN ? '#ff4d4f' : undefined }}>{v}</span>
       ),
     },
     {

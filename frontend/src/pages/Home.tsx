@@ -20,13 +20,14 @@ import { loadCategories, loadProducts } from '@/store/slices/productSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatCNY } from '@/utils/format';
+import { LOW_STOCK_BADGE } from '@/utils/stockThresholds';
 import type { ProductSort } from '@/types';
 
 const ALL_CATEGORIES_KEY = '__all__';
 
 // Thresholds for the "热卖" / "仅剩 N 件" ribbons on product cards.
 const HOT_SELLER_THRESHOLD = 10;
-const LOW_STOCK_THRESHOLD = 5;
+const LOW_STOCK_THRESHOLD = LOW_STOCK_BADGE;
 // First N images get loading="eager" + fetchpriority="high" so the LCP
 // candidate above the fold starts decoding immediately; everything below
 // stays lazy.
