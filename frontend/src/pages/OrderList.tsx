@@ -128,7 +128,16 @@ export default function OrderList(): JSX.Element {
       </div>
 
       {!loading && list.length === 0 ? (
-        <Empty description="暂无订单" />
+        <div style={{ padding: '48px 0', textAlign: 'center' }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={statusFilter ? `没有${statusFilter}的订单` : '还没有订单，先逛逛？'}
+          >
+            <Button type="primary" onClick={() => navigate('/')}>
+              去购物
+            </Button>
+          </Empty>
+        </div>
       ) : (
         <List
           loading={loading}

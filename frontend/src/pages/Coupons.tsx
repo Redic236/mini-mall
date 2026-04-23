@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Empty, Row, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Empty, Row, Skeleton, Tag, Typography, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { fetchPublicCoupons } from '@/services/coupon';
 import type { Coupon } from '@/types';
 import { formatCNY } from '@/utils/format';
@@ -7,6 +8,7 @@ import { formatCNY } from '@/utils/format';
 export default function Coupons(): JSX.Element {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     void (async () => {
@@ -30,13 +32,37 @@ export default function Coupons(): JSX.Element {
   return (
     <div>
       <h1 className="page-title">优惠券</h1>
-      {loading ? null : coupons.length === 0 ? (
-        <Empty description="暂无可用优惠券" />
+      {loading ? (
+        <Row gutter={[16, 16]}>
+          {[0, 1, 2].map((i) => (
+            <Col key={i} xs={24} sm={12} md={8}>
+              <Card>
+                <Skeleton active paragraph={{ rows: 3 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : coupons.length === 0 ? (
+        <div style={{ padding: '48px 0', textAlign: 'center' }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="暂无可用优惠券，先去挑点好物"
+          >
+            <Button type="primary" onClick={() => navigate('/')}>
+              去逛逛
+            </Button>
+          </Empty>
+        </div>
       ) : (
         <Row gutter={[16, 16]}>
           {coupons.map((c) => (
             <Col key={c.id} xs={24} sm={12} md={8}>
-              <Card hoverable onClick={() => void copy(c.code)} style={{ cursor: 'copy' }}>
+              <Card
+                className="product-card"
+                hoverable
+                onClick={() => void copy(c.code)}
+                style={{ cursor: 'copy' }}
+              >
                 <Typography.Title level={4} style={{ margin: 0, color: '#ff4d4f' }}>
                   {c.type === 'fixed' ? `¥${Number(c.value).toFixed(0)}` : `${c.value}%`}
                   <Typography.Text style={{ fontSize: 14, marginLeft: 8 }} type="secondary">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import {
+  Button,
   Card,
   Col,
   Empty,
@@ -21,6 +22,14 @@ import { formatCNY } from '@/utils/format';
 import type { ProductSort } from '@/types';
 
 const ALL_CATEGORIES_KEY = '__all__';
+
+// Thresholds for the "热卖" / "仅剩 N 件" ribbons on product cards.
+const HOT_SELLER_THRESHOLD = 10;
+const LOW_STOCK_THRESHOLD = 5;
+// First N images get loading="eager" + fetchpriority="high" so the LCP
+// candidate above the fold starts decoding immediately; everything below
+// stays lazy.
+const EAGER_IMAGE_COUNT = 4;
 
 const SORT_OPTIONS: Array<{ label: string; value: ProductSort }> = [
   { label: '默认排序', value: 'default' },
@@ -84,9 +93,45 @@ export default function Home(): JSX.Element {
     setSearchParams(next, { replace: true });
   };
 
+  const filtersActive =
+    keyword.length > 0 ||
+    category.length > 0 ||
+    minPrice !== undefined ||
+    maxPrice !== undefined ||
+    sort !== 'default';
+
+  const clearFilters = (): void => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+  };
+
   return (
     <div>
-      <h1 className="page-title">全部商品</h1>
+      <section className="home-hero" aria-label="首页 banner">
+        <div className="home-hero__text">
+          <span className="home-hero__eyebrow">🛍️ MINI MALL</span>
+          <h1 className="home-hero__title">精选好物，直抵生活</h1>
+          <p className="home-hero__subtitle">
+            从日常穿搭到数码周边，一站配齐。领取平台优惠券，新用户下单立享减免。
+          </p>
+          <div className="home-hero__actions">
+            <Link to="/coupons">
+              <Button type="primary" size="large" style={{ background: '#fff', color: '#1677ff', borderColor: '#fff' }}>
+                领券中心
+              </Button>
+            </Link>
+            <Button
+              size="large"
+              ghost
+              style={{ borderColor: 'rgba(255,255,255,0.7)', color: '#fff' }}
+              onClick={() => document.getElementById('product-grid')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              开始逛逛
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <h2 className="page-title" id="product-grid">全部商品</h2>
 
       <div
         style={{
@@ -157,33 +202,67 @@ export default function Home(): JSX.Element {
           ))}
         </Row>
       ) : list.length === 0 ? (
-        <Empty description="没有找到匹配的商品" />
+        <Empty
+          description={filtersActive ? '没有找到匹配的商品' : '暂无商品'}
+          style={{ padding: '48px 0' }}
+        >
+          {filtersActive && <Button onClick={clearFilters}>清空筛选</Button>}
+        </Empty>
       ) : (
         <Row gutter={[16, 16]}>
-          {list.map((product) => {
+          {list.map((product, index) => {
             const rating = Number(product.averageRating ?? 0);
             const count = Number(product.reviewCount ?? 0);
+            const sales = Number(product.salesCount ?? 0);
+            const isHotSeller = sales >= HOT_SELLER_THRESHOLD;
+            const isLowStock = product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
+            const eager = index < EAGER_IMAGE_COUNT;
+
             return (
               <Col key={product.id} xs={24} sm={12} md={8} lg={6}>
                 <Link to={`/products/${product.id}`}>
                   <Card
+                    className="product-card"
                     hoverable
                     cover={
-                      product.image ? (
-                        <img
-                          alt={product.name}
-                          src={product.image}
-                          style={{ height: 200, objectFit: 'cover' }}
-                          loading="lazy"
-                        />
-                      ) : undefined
+                      <div style={{ position: 'relative' }}>
+                        {isHotSeller && (
+                          <span className="product-card__badge product-card__badge--hot">
+                            热卖 · {sales}+
+                          </span>
+                        )}
+                        {!isHotSeller && isLowStock && (
+                          <span className="product-card__badge product-card__badge--low-stock">
+                            仅剩 {product.stock} 件
+                          </span>
+                        )}
+                        {product.image ? (
+                          <img
+                            alt={product.name}
+                            src={product.image}
+                            style={{ height: 200, width: '100%', objectFit: 'cover', display: 'block' }}
+                            loading={eager ? 'eager' : 'lazy'}
+                            fetchPriority={eager ? 'high' : 'auto'}
+                            decoding="async"
+                            width={400}
+                            height={200}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              height: 200,
+                              background: 'linear-gradient(135deg, #e6f4ff, #bae0ff)',
+                            }}
+                          />
+                        )}
+                      </div>
                     }
                   >
                     <Card.Meta
                       title={product.name}
                       description={
                         <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                          <Typography.Text strong style={{ color: '#1677ff' }}>
+                          <Typography.Text strong style={{ color: '#1677ff', fontSize: 16 }}>
                             {formatCNY(product.price)}
                           </Typography.Text>
                           <Space size={6}>

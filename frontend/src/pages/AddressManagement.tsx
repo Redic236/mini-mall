@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, List, Modal, Popconfirm, Space, Switch, Tag } from 'antd';
+import { Button, Empty, Form, Input, List, Modal, Popconfirm, Space, Switch, Tag } from 'antd';
 import {
   addAddress,
   editAddress,
@@ -52,6 +52,17 @@ export default function AddressManagement(): JSX.Element {
       <List
         loading={loading}
         dataSource={list}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="还没有收货地址，添加一个吧"
+              style={{ padding: '32px 0' }}
+            >
+              <Button type="primary" onClick={openCreate}>新增地址</Button>
+            </Empty>
+          ),
+        }}
         renderItem={(a) => (
           <List.Item
             actions={[

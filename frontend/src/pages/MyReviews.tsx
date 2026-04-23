@@ -15,7 +15,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { deleteReview, fetchMyReviews, updateReview } from '@/services/review';
 import type { MyReviewsResult, Review } from '@/types';
 
@@ -32,6 +32,7 @@ export default function MyReviews(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Review | null>(null);
   const [form] = Form.useForm<EditValues>();
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,9 +82,16 @@ export default function MyReviews(): JSX.Element {
       {loading && !data ? (
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : items.length === 0 ? (
-        <Empty description="你还没有评价过任何商品">
-          <Link to="/">去逛逛</Link>
-        </Empty>
+        <div style={{ padding: '48px 0', textAlign: 'center' }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="你还没有评价过任何商品"
+          >
+            <Button type="primary" onClick={() => navigate('/')}>
+              去逛逛
+            </Button>
+          </Empty>
+        </div>
       ) : (
         <>
           <List

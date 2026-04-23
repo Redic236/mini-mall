@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { Button, Empty, InputNumber, Popconfirm, Table } from 'antd';
+import { Button, Empty, InputNumber, Popconfirm, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { loadCart, removeCartItem, updateCartItem } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import type { CartItem } from '@/types';
@@ -59,11 +59,29 @@ export default function Cart(): JSX.Element {
     },
   ];
 
+  // Initial load: show a skeleton instead of a flash of "empty cart" while
+  // the cart GET is in flight (common on first session boot).
+  if (loading && items.length === 0) {
+    return (
+      <div>
+        <h1 className="page-title">购物车</h1>
+        <Skeleton active paragraph={{ rows: 4 }} />
+      </div>
+    );
+  }
+
   if (!loading && items.length === 0) {
     return (
-      <Empty description="购物车是空的">
-        <Link to="/">去逛逛</Link>
-      </Empty>
+      <div style={{ padding: '48px 0', textAlign: 'center' }}>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="购物车是空的，挑几件喜欢的吧"
+        >
+          <Button type="primary" size="large" onClick={() => navigate('/')}>
+            去逛逛
+          </Button>
+        </Empty>
+      </div>
     );
   }
 

@@ -82,11 +82,16 @@ export default function OrderConfirm(): JSX.Element {
 
   if (addresses.length === 0) {
     return (
-      <Empty description="还没有收货地址">
-        <Button type="primary" onClick={() => navigate('/addresses')}>
-          去添加
-        </Button>
-      </Empty>
+      <div style={{ padding: '48px 0', textAlign: 'center' }}>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="还没有收货地址，添加一个才能下单"
+        >
+          <Button type="primary" onClick={() => navigate('/addresses')}>
+            去添加
+          </Button>
+        </Empty>
+      </div>
     );
   }
 
