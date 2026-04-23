@@ -142,6 +142,9 @@ export async function createOrderFromCart(userId: number, input: CreateOrderInpu
 
       const currentStock = Number(product.get('stock'));
       product.set('stock', currentStock - quantity);
+      // salesCount mirrors stock: bump on create, decrement in cancel. This
+      // drives the `sort=sales` product listing without scanning order_items.
+      product.set('salesCount', Number(product.get('salesCount') ?? 0) + quantity);
       await product.save({ transaction: t });
     }
 
@@ -205,6 +208,8 @@ async function cancelPendingInTxn(
     if (product) {
       const currentStock = Number(product.get('stock'));
       product.set('stock', currentStock + Number(item.quantity));
+      const currentSales = Number(product.get('salesCount') ?? 0);
+      product.set('salesCount', Math.max(0, currentSales - Number(item.quantity)));
       await product.save({ transaction });
     }
   }

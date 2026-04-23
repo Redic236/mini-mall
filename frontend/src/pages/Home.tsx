@@ -1,12 +1,39 @@
 import { useEffect, useMemo } from 'react';
-import { Card, Col, Empty, Input, Rate, Row, Segmented, Skeleton, Space, Typography } from 'antd';
+import {
+  Card,
+  Col,
+  Empty,
+  Input,
+  InputNumber,
+  Rate,
+  Row,
+  Segmented,
+  Select,
+  Skeleton,
+  Space,
+  Typography,
+} from 'antd';
 import { Link, useSearchParams } from 'react-router-dom';
 import { loadCategories, loadProducts } from '@/store/slices/productSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatCNY } from '@/utils/format';
+import type { ProductSort } from '@/types';
 
 const ALL_CATEGORIES_KEY = '__all__';
+
+const SORT_OPTIONS: Array<{ label: string; value: ProductSort }> = [
+  { label: '默认排序', value: 'default' },
+  { label: '价格从低到高', value: 'priceAsc' },
+  { label: '价格从高到低', value: 'priceDesc' },
+  { label: '销量优先', value: 'sales' },
+];
+
+function parseOptionalNumber(raw: string | null): number | undefined {
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 export default function Home(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -15,7 +42,13 @@ export default function Home(): JSX.Element {
 
   const keyword = searchParams.get('q') ?? '';
   const category = searchParams.get('cat') ?? '';
+  const minPrice = parseOptionalNumber(searchParams.get('min'));
+  const maxPrice = parseOptionalNumber(searchParams.get('max'));
+  const sort = (searchParams.get('sort') as ProductSort | null) ?? 'default';
+
   const debouncedKeyword = useDebouncedValue(keyword, 300);
+  const debouncedMin = useDebouncedValue(minPrice, 400);
+  const debouncedMax = useDebouncedValue(maxPrice, 400);
 
   useEffect(() => {
     void dispatch(loadCategories());
@@ -26,9 +59,12 @@ export default function Home(): JSX.Element {
       loadProducts({
         keyword: debouncedKeyword || undefined,
         category: category || undefined,
+        minPrice: debouncedMin,
+        maxPrice: debouncedMax,
+        sort,
       }),
     );
-  }, [dispatch, debouncedKeyword, category]);
+  }, [dispatch, debouncedKeyword, category, debouncedMin, debouncedMax, sort]);
 
   const categoryOptions = useMemo(
     () => [
@@ -72,6 +108,40 @@ export default function Home(): JSX.Element {
           value={category || ALL_CATEGORIES_KEY}
           onChange={(v) => updateParam('cat', v === ALL_CATEGORIES_KEY ? null : String(v))}
           options={categoryOptions}
+        />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Space size={8}>
+          <Typography.Text type="secondary">价格</Typography.Text>
+          <InputNumber
+            min={0}
+            placeholder="最低"
+            value={minPrice}
+            onChange={(v) => updateParam('min', v !== null && v !== undefined ? String(v) : null)}
+            style={{ width: 100 }}
+          />
+          <span>—</span>
+          <InputNumber
+            min={0}
+            placeholder="最高"
+            value={maxPrice}
+            onChange={(v) => updateParam('max', v !== null && v !== undefined ? String(v) : null)}
+            style={{ width: 100 }}
+          />
+        </Space>
+        <Select<ProductSort>
+          value={sort}
+          onChange={(v) => updateParam('sort', v === 'default' ? null : v)}
+          options={SORT_OPTIONS}
+          style={{ width: 160 }}
         />
       </div>
 

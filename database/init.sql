@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `category`    VARCHAR(50)     NOT NULL DEFAULT '其他',
   `image`       VARCHAR(512)    NULL,
   `stock`       INT             NOT NULL DEFAULT 0,
+  `salesCount`  INT             NOT NULL DEFAULT 0,
   `createdAt`   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt`   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

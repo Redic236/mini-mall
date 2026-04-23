@@ -5,9 +5,14 @@ import { idSchema, parseOrThrow, productListQuerySchema } from '../utils/validat
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const str = (k: string): string | undefined =>
+      typeof req.query[k] === 'string' ? (req.query[k] as string) : undefined;
     const filter = parseOrThrow(productListQuerySchema, {
-      keyword: typeof req.query.keyword === 'string' ? req.query.keyword : undefined,
-      category: typeof req.query.category === 'string' ? req.query.category : undefined,
+      keyword: str('keyword'),
+      category: str('category'),
+      minPrice: str('minPrice'),
+      maxPrice: str('maxPrice'),
+      sort: str('sort'),
     });
     const products = await productService.listProducts(filter);
     res.json(ok(products));

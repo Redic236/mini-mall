@@ -1,10 +1,16 @@
 import { Op, fn, col, literal } from 'sequelize';
+import type { Order } from 'sequelize';
 import { Product } from '../models';
 import { HttpError } from '../utils/apiResponse';
+
+export type ProductSort = 'default' | 'priceAsc' | 'priceDesc' | 'sales';
 
 export interface ListProductsFilter {
   keyword?: string;
   category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSort;
 }
 
 export interface CategorySummary {
@@ -27,6 +33,21 @@ const REVIEW_COUNT_ATTR: [ReturnType<typeof literal>, string] = [
   'reviewCount',
 ];
 
+function priceWhere(filter: ListProductsFilter): Record<string, unknown> | null {
+  if (filter.minPrice === undefined && filter.maxPrice === undefined) return null;
+  const clause: Record<symbol, number> = {};
+  if (filter.minPrice !== undefined) clause[Op.gte] = filter.minPrice;
+  if (filter.maxPrice !== undefined) clause[Op.lte] = filter.maxPrice;
+  return clause;
+}
+
+const ORDER_BY: Record<ProductSort, Order> = {
+  default: [['id', 'ASC']],
+  priceAsc: [['price', 'ASC'], ['id', 'ASC']],
+  priceDesc: [['price', 'DESC'], ['id', 'ASC']],
+  sales: [['salesCount', 'DESC'], ['id', 'ASC']],
+};
+
 export async function listProducts(filter: ListProductsFilter = {}): Promise<Product[]> {
   const where: Record<string, unknown> = {};
   if (filter.category) {
@@ -39,10 +60,13 @@ export async function listProducts(filter: ListProductsFilter = {}): Promise<Pro
       { description: { [Op.like]: like } },
     ];
   }
+  const price = priceWhere(filter);
+  if (price) where.price = price;
+
   return Product.findAll({
     where,
     attributes: { include: [AVERAGE_RATING_ATTR, REVIEW_COUNT_ATTR] },
-    order: [['id', 'ASC']],
+    order: ORDER_BY[filter.sort ?? 'default'],
   });
 }
 

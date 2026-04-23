@@ -51,6 +51,42 @@ describe('Products API', () => {
       // An empty string is still a string — Zod min(1) rejects it after trim.
       expect(res.status).toBe(400);
     });
+
+    describe('price range + sort', () => {
+      it('filters by minPrice and maxPrice', async () => {
+        // Seed prices: T-Shirt 59, Jeans 199, Sneakers 399.
+        const res = await request(getApp()).get('/api/products?minPrice=100&maxPrice=300');
+        const names = (res.body.data as Array<{ name: string }>).map((p) => p.name);
+        expect(names).toEqual(['Jeans']);
+      });
+
+      it('sort=priceAsc / priceDesc order the list', async () => {
+        const asc = await request(getApp()).get('/api/products?sort=priceAsc');
+        expect((asc.body.data as Array<{ name: string }>).map((p) => p.name)).toEqual([
+          'T-Shirt', 'Jeans', 'Sneakers',
+        ]);
+        const desc = await request(getApp()).get('/api/products?sort=priceDesc');
+        expect((desc.body.data as Array<{ name: string }>).map((p) => p.name)).toEqual([
+          'Sneakers', 'Jeans', 'T-Shirt',
+        ]);
+      });
+
+      it('sort=sales orders by salesCount desc', async () => {
+        // Manually bump salesCount for two products.
+        const { Product } = await import('../../src/models');
+        await Product.update({ salesCount: 50 }, { where: { id: data.products[1].id } });
+        await Product.update({ salesCount: 100 }, { where: { id: data.products[2].id } });
+        const res = await request(getApp()).get('/api/products?sort=sales');
+        const names = (res.body.data as Array<{ name: string }>).map((p) => p.name);
+        expect(names[0]).toBe('Sneakers');
+        expect(names[1]).toBe('Jeans');
+      });
+
+      it('rejects minPrice > maxPrice', async () => {
+        const res = await request(getApp()).get('/api/products?minPrice=500&maxPrice=100');
+        expect(res.status).toBe(400);
+      });
+    });
   });
 
   describe('GET /api/products/categories', () => {

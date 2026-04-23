@@ -28,11 +28,14 @@ export interface Product {
   category: string;
   image: string | null;
   stock: number;
+  salesCount?: number;
   averageRating?: number;
   reviewCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type ProductSort = 'default' | 'priceAsc' | 'priceDesc' | 'sales';
 
 export interface CategorySummary {
   category: string;
@@ -42,6 +45,9 @@ export interface CategorySummary {
 export interface ProductFilter {
   keyword?: string;
   category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSort;
 }
 
 export interface CartItem {

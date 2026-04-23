@@ -60,10 +60,18 @@ export const myReviewsQuerySchema = z.object({
 });
 
 // Products
-export const productListQuerySchema = z.object({
-  keyword: z.string().trim().min(1).max(100).optional(),
-  category: z.string().trim().min(1).max(50).optional(),
-});
+export const productListQuerySchema = z
+  .object({
+    keyword: z.string().trim().min(1).max(100).optional(),
+    category: z.string().trim().min(1).max(50).optional(),
+    minPrice: z.coerce.number().nonnegative().optional(),
+    maxPrice: z.coerce.number().nonnegative().optional(),
+    sort: z.enum(['default', 'priceAsc', 'priceDesc', 'sales']).default('default'),
+  })
+  .refine(
+    (v) => v.minPrice === undefined || v.maxPrice === undefined || v.minPrice <= v.maxPrice,
+    { message: 'minPrice 不能大于 maxPrice', path: ['maxPrice'] },
+  );
 
 // Cart
 export const addCartBodySchema = z.object({
