@@ -1,0 +1,63 @@
+# Full local stack: MySQL 8 + Express backend + nginx-served React frontend.
+# `docker compose up --build` → open http://localhost:8080
+#
+# Host ports: 8080 (frontend), 3001 (backend), 3307 (mysql).
+# MySQL is mapped to 3307 externally to avoid clashing with a local MySQL on 3306.
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpw
+      MYSQL_DATABASE: mini_mall
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # On the very first start (empty volume) MySQL runs scripts from
+      # /docker-entrypoint-initdb.d against MYSQL_DATABASE, seeding the schema.
+      - ./database/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpw"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: rootpw
+      DB_NAME: mini_mall
+      # Nginx proxies /api → backend, so the browser origin is the frontend's.
+      CORS_ORIGIN: http://localhost:8080
+      # Rotate before any real deployment. Left as a dev default here.
+      JWT_SECRET: dev-docker-secret-change-me
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql-data:

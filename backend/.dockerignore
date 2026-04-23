@@ -1,0 +1,21 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.git
+.gitignore
+.vscode
+.idea
+
+# Test-only paths aren't needed inside the runtime image
+tests
+vitest.config.ts
+**/*.test.ts
+**/*.spec.ts
+
+# Docker files themselves
+Dockerfile
+.dockerignore

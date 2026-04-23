@@ -22,12 +22,37 @@
 
 ## 快速开始
 
-### 数据库
+### 用 Docker（最省事）
+
+前置：Docker Desktop / Docker Engine + Compose V2。
+
+```bash
+docker compose up --build
+```
+
+- 前端：http://localhost:8080
+- 后端健康检查：http://localhost:3001/api/health
+- MySQL：`localhost:3307`（容器内 `mysql:3306`，data volume 持久化）
+
+`database/init.sql` 会在 mysql 容器首次启动时自动执行（建表 + 种子商品）。要重置所有数据：
+
+```bash
+docker compose down -v
+```
+
+镜像细节：
+- backend 多阶段（deps → build → runtime），non-root `node` 用户运行
+- frontend build 产物交给 nginx，`/api/*` 反代到 `backend:3001`，SPA fallback 兜底未知路由
+- 环境变量在 [docker-compose.yml](docker-compose.yml) 里就地定义；`JWT_SECRET` 是演示值，真部署前务必换掉
+
+### 本地手动启动
+
+#### 数据库
 
 1. 安装 MySQL 8。
 2. 执行 `database/init.sql` 创建库和表。
 
-### 后端
+#### 后端
 
 ```bash
 cd backend
@@ -38,7 +63,7 @@ npm run dev
 
 默认在 `http://localhost:3001` 启动。
 
-### 前端
+#### 前端
 
 ```bash
 cd frontend

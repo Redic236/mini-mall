@@ -1,0 +1,26 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.git
+.gitignore
+.vscode
+.idea
+
+# Vite cache
+.vite
+
+# Tests not needed in build context
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
+src/test
+
+# Docker files themselves
+Dockerfile
+.dockerignore
