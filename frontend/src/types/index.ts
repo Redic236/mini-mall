@@ -10,10 +10,21 @@ export interface Product {
   name: string;
   price: number;
   description: string | null;
+  category: string;
   image: string | null;
   stock: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CategorySummary {
+  category: string;
+  count: number;
+}
+
+export interface ProductFilter {
+  keyword?: string;
+  category?: string;
 }
 
 export interface CartItem {

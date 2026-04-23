@@ -24,9 +24,9 @@ export async function seed(options: SeedOptions = { products: true, address: tru
 
   const products = options.products
     ? await Product.bulkCreate([
-        { name: 'T-Shirt', price: 59, stock: 100, description: 'cotton tee', image: null },
-        { name: 'Jeans', price: 199, stock: 50, description: 'blue jeans', image: null },
-        { name: 'Sneakers', price: 399, stock: 10, description: 'light runners', image: null },
+        { name: 'T-Shirt', price: 59, stock: 100, description: 'cotton tee', category: 'apparel', image: null },
+        { name: 'Jeans', price: 199, stock: 50, description: 'blue jeans', category: 'apparel', image: null },
+        { name: 'Sneakers', price: 399, stock: 10, description: 'light runners', category: 'footwear', image: null },
       ])
     : [];
 

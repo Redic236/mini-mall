@@ -19,6 +19,12 @@ export const idSchema = z.coerce.number().int().positive();
 export const positiveIntSchema = z.number().int().positive();
 export const nonNegativeNumberSchema = z.number().nonnegative();
 
+// Products
+export const productListQuerySchema = z.object({
+  keyword: z.string().trim().min(1).max(100).optional(),
+  category: z.string().trim().min(1).max(50).optional(),
+});
+
 // Cart
 export const addCartBodySchema = z.object({
   productId: positiveIntSchema,

@@ -1,10 +1,11 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchProduct, fetchProducts } from '@/services/product';
-import type { Product } from '@/types';
+import { fetchCategories, fetchProduct, fetchProducts } from '@/services/product';
+import type { CategorySummary, Product, ProductFilter } from '@/types';
 
 interface ProductState {
   list: Product[];
   current: Product | null;
+  categories: CategorySummary[];
   loading: boolean;
   error: string | null;
 }
@@ -12,12 +13,19 @@ interface ProductState {
 const initialState: ProductState = {
   list: [],
   current: null,
+  categories: [],
   loading: false,
   error: null,
 };
 
-export const loadProducts = createAsyncThunk('products/load', async () => fetchProducts());
+export const loadProducts = createAsyncThunk(
+  'products/load',
+  async (filter: ProductFilter | undefined) => fetchProducts(filter ?? {}),
+);
+
 export const loadProduct = createAsyncThunk('products/loadOne', async (id: number) => fetchProduct(id));
+
+export const loadCategories = createAsyncThunk('products/loadCategories', async () => fetchCategories());
 
 const slice = createSlice({
   name: 'products',
@@ -43,6 +51,9 @@ const slice = createSlice({
       })
       .addCase(loadProduct.fulfilled, (state, action: PayloadAction<Product>) => {
         state.current = action.payload;
+      })
+      .addCase(loadCategories.fulfilled, (state, action: PayloadAction<CategorySummary[]>) => {
+        state.categories = action.payload;
       });
   },
 });

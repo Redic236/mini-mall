@@ -6,19 +6,24 @@ interface ProductAttributes {
   name: string;
   price: number;
   description: string | null;
+  category: string;
   image: string | null;
   stock: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-type ProductCreationAttributes = Optional<ProductAttributes, 'id' | 'description' | 'image' | 'stock'>;
+type ProductCreationAttributes = Optional<
+  ProductAttributes,
+  'id' | 'description' | 'image' | 'stock' | 'category'
+>;
 
 export class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
   public id!: number;
   public name!: string;
   public price!: number;
   public description!: string | null;
+  public category!: string;
   public image!: string | null;
   public stock!: number;
   public readonly createdAt!: Date;
@@ -31,6 +36,7 @@ Product.init(
     name: { type: DataTypes.STRING(255), allowNull: false },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
+    category: { type: DataTypes.STRING(50), allowNull: false, defaultValue: '其他' },
     image: { type: DataTypes.STRING(512), allowNull: true },
     stock: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   },
@@ -38,5 +44,6 @@ Product.init(
     sequelize,
     tableName: 'products',
     modelName: 'Product',
+    indexes: [{ fields: ['category'] }],
   },
 );

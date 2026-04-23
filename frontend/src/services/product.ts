@@ -1,10 +1,17 @@
 import { http, unwrap } from './http';
-import type { ApiResponse, Product } from '@/types';
+import type { ApiResponse, CategorySummary, Product, ProductFilter } from '@/types';
 
-export async function fetchProducts(): Promise<Product[]> {
-  return unwrap<Product[]>(http.get<ApiResponse<Product[]>>('/products'));
+export async function fetchProducts(filter: ProductFilter = {}): Promise<Product[]> {
+  const params: Record<string, string> = {};
+  if (filter.keyword) params.keyword = filter.keyword;
+  if (filter.category) params.category = filter.category;
+  return unwrap<Product[]>(http.get<ApiResponse<Product[]>>('/products', { params }));
 }
 
 export async function fetchProduct(id: number): Promise<Product> {
   return unwrap<Product>(http.get<ApiResponse<Product>>(`/products/${id}`));
+}
+
+export async function fetchCategories(): Promise<CategorySummary[]> {
+  return unwrap<CategorySummary[]>(http.get<ApiResponse<CategorySummary[]>>('/products/categories'));
 }
