@@ -32,7 +32,11 @@ export default function OrderConfirm(): JSX.Element {
   }, [addresses, selectedId]);
 
   const handleApplyCoupon = async (): Promise<void> => {
-    const code = couponCode.trim();
+    // Normalise to uppercase only at submit time — transforming onChange breaks
+    // IME composition for users mid-typing (Chinese, Japanese, Korean input).
+    // Coupon codes are ASCII per the admin regex, so blur/submit-time upper
+    // casing is safe.
+    const code = couponCode.trim().toUpperCase();
     if (!code) {
       setCoupon(null);
       return;
@@ -41,6 +45,9 @@ export default function OrderConfirm(): JSX.Element {
     try {
       const preview = await previewCoupon(code, totalPrice);
       setCoupon(preview);
+      // Reflect the normalised form in the input so the submitted order uses
+      // exactly what the user sees.
+      setCouponCode(code);
       message.success(`已应用：${preview.name}，减免 ${formatCNY(preview.discountAmount)}`);
     } catch {
       setCoupon(null);
@@ -128,7 +135,8 @@ export default function OrderConfirm(): JSX.Element {
           <Input
             placeholder="输入优惠券码"
             value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCouponCode(e.target.value)}
+            onBlur={() => setCouponCode((prev) => prev.trim().toUpperCase())}
             style={{ width: 200 }}
             onPressEnter={() => void handleApplyCoupon()}
           />
