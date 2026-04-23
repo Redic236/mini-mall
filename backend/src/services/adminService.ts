@@ -20,10 +20,14 @@ const LOW_STOCK_THRESHOLD = 10;
 /**
  * Dashboard tiles. One query per number is fine at this scale — the table
  * fits in the buffer pool and the admin landing view is not hot.
+ *
+ * "Today" is anchored to UTC so it lines up with getStatsHistory's sparkline
+ * buckets regardless of MySQL session timezone or Node process TZ. Admins in
+ * a non-UTC zone will see a "today" that rolls over at UTC midnight.
  */
 export async function getStats(): Promise<AdminStats> {
   const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  startOfToday.setUTCHours(0, 0, 0, 0);
 
   const [totalOrders, todayOrders, pendingShipmentCount, totalProducts, lowStockCount, revenueRow] =
     await Promise.all([
@@ -75,20 +79,26 @@ export async function getStatsHistory(days: number): Promise<StatsHistory> {
   since.setUTCHours(0, 0, 0, 0);
   since.setUTCDate(since.getUTCDate() - (days - 1));
 
+  // Force UTC day bucketing so the SQL-side labels match the JS fill loop
+  // below (which generates YYYY-MM-DD from UTC). Without CONVERT_TZ, the
+  // bucket depends on MySQL's @@session.time_zone, which is fine when
+  // Sequelize's default '+00:00' is in effect but silently shifts if the
+  // session is ever reconfigured.
   const rawOrders = await sequelize.query<{ day: string; count: number | string }>(
-    `SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS day, COUNT(*) AS count
+    `SELECT DATE_FORMAT(CONVERT_TZ(createdAt, @@session.time_zone, '+00:00'), '%Y-%m-%d') AS day,
+            COUNT(*) AS count
        FROM orders
       WHERE createdAt >= :since
-      GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+      GROUP BY day`,
     { replacements: { since }, type: QueryTypes.SELECT },
   );
   const rawRevenue = await sequelize.query<{ day: string; amount: number | string }>(
-    `SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS day,
+    `SELECT DATE_FORMAT(CONVERT_TZ(createdAt, @@session.time_zone, '+00:00'), '%Y-%m-%d') AS day,
             COALESCE(SUM(totalAmount), 0) AS amount
        FROM orders
       WHERE createdAt >= :since
         AND status IN ('已支付', '已发货', '已完成')
-      GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+      GROUP BY day`,
     { replacements: { since }, type: QueryTypes.SELECT },
   );
 
