@@ -8,16 +8,41 @@ interface Props {
   orderId: number;
 }
 
+// Module-scoped cache so an AntD <Collapse> that unmounts+remounts this
+// component (default behavior on collapse/expand) doesn't re-hit the API
+// on every toggle. Events are append-only from the user's perspective, so
+// stale cache here is benign — a full page refresh clears it.
+const eventsCache = new Map<number, ShipmentEvent[]>();
+
 /**
- * Read-only shipment timeline for the user's own order. Fetches on mount;
- * if the order is brand-new and never shipped there will be no events and
- * the component renders a friendly empty state.
+ * Read-only shipment timeline for the user's own order. Fetches on first
+ * mount and memoises the result; if the order is brand-new and never shipped
+ * there will be no events and the component renders a friendly empty state.
  */
 export default function ShipmentTimeline({ orderId }: Props): JSX.Element {
-  const [events, setEvents] = useState<ShipmentEvent[] | null>(null);
+  const [events, setEvents] = useState<ShipmentEvent[] | null>(
+    () => eventsCache.get(orderId) ?? null,
+  );
 
   useEffect(() => {
-    void fetchShipmentEvents(orderId).then(setEvents).catch(() => setEvents([]));
+    const cached = eventsCache.get(orderId);
+    if (cached) {
+      setEvents(cached);
+      return;
+    }
+    let cancelled = false;
+    void fetchShipmentEvents(orderId)
+      .then((evts) => {
+        if (cancelled) return;
+        eventsCache.set(orderId, evts);
+        setEvents(evts);
+      })
+      .catch(() => {
+        if (!cancelled) setEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [orderId]);
 
   if (events === null) return <Spin size="small" />;
