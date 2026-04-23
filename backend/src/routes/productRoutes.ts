@@ -7,5 +7,6 @@ const router = Router();
 router.get('/', productController.list);
 router.get('/categories', productController.categories);
 router.get('/:id', productController.detail);
+router.get('/:id/recommendations', productController.recommendations);
 
 export default router;

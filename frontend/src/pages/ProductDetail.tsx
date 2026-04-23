@@ -15,6 +15,7 @@ import { clearCurrent, loadProduct } from '@/store/slices/productSlice';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import ProductReviews from '@/components/ProductReviews';
+import ProductRecommendations from '@/components/ProductRecommendations';
 import { formatCNY } from '@/utils/format';
 
 export default function ProductDetail(): JSX.Element {
@@ -101,6 +102,9 @@ export default function ProductDetail(): JSX.Element {
           加入购物车
         </Button>
       </Space>
+
+      <Divider />
+      <ProductRecommendations productId={current.id} />
 
       <Divider />
       <ProductReviews productId={current.id} />

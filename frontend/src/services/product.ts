@@ -18,3 +18,17 @@ export async function fetchProduct(id: number): Promise<Product> {
 export async function fetchCategories(): Promise<CategorySummary[]> {
   return unwrap<CategorySummary[]>(http.get<ApiResponse<CategorySummary[]>>('/products/categories'));
 }
+
+export interface ProductRecommendation {
+  product: Product;
+  score: number;
+  source: 'cf' | 'category-fallback';
+}
+
+export async function fetchRecommendations(id: number, limit = 6): Promise<ProductRecommendation[]> {
+  return unwrap<ProductRecommendation[]>(
+    http.get<ApiResponse<ProductRecommendation[]>>(`/products/${id}/recommendations`, {
+      params: { limit },
+    }),
+  );
+}

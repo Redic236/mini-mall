@@ -1,7 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import * as productService from '../services/productService';
+import * as recommendationService from '../services/recommendationService';
 import { ok } from '../utils/apiResponse';
 import { idSchema, parseOrThrow, productListQuerySchema } from '../utils/validate';
+import { z } from 'zod';
+
+const recommendationLimitSchema = z.coerce.number().int().min(1).max(20).default(6);
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -35,6 +39,23 @@ export async function detail(req: Request, res: Response, next: NextFunction): P
     const id = parseOrThrow(idSchema, req.params.id, 'id');
     const product = await productService.getProductById(id);
     res.json(ok(product));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function recommendations(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = parseOrThrow(idSchema, req.params.id, 'id');
+    const limit = parseOrThrow(recommendationLimitSchema, req.query.limit, 'limit');
+    // Validate the target exists so we return a 404 rather than an empty list.
+    await productService.getProductById(id);
+    const items = await recommendationService.recommendForProduct(id, limit);
+    res.json(ok(items));
   } catch (err) {
     next(err);
   }
