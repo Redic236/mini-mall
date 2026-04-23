@@ -96,6 +96,22 @@ export const orderStatusQuerySchema = z
   .enum(['待支付', '已支付', '已发货', '已完成', '已取消'])
   .optional();
 
+// Admin
+export const adminOrderListQuerySchema = z.object({
+  status: z.enum(['待支付', '已支付', '已发货', '已完成', '已取消']).optional(),
+  page: z.coerce.number().int().positive().max(1000).default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+export const adminProductBodySchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  price: z.coerce.number().nonnegative(),
+  description: z.string().trim().max(2000).nullable().optional(),
+  category: z.string().trim().min(1).max(50),
+  image: z.string().trim().max(512).nullable().optional(),
+  stock: z.coerce.number().int().nonnegative(),
+});
+
 // Payments (sandbox)
 export const payIntentBodySchema = z.object({
   method: z.enum(['alipay_sandbox', 'wechat_sandbox']),

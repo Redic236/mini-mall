@@ -167,7 +167,7 @@ export async function transitionOrder(
   request: APIRequestContext,
   token: string,
   orderId: number,
-  action: 'pay' | 'ship' | 'confirm' | 'cancel',
+  action: 'pay' | 'confirm' | 'cancel',
 ): Promise<void> {
   const res = await request.put(`${API_BASE}/api/orders/${orderId}/${action}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -175,5 +175,28 @@ export async function transitionOrder(
   if (res.status() !== 200) {
     const body = await res.text();
     throw new Error(`transitionOrder(${action}) failed: ${res.status()} ${body}`);
+  }
+}
+
+// Shipping is admin-only. Seed-e2e.ts provisions admin@e2e.test / AdminPass123.
+export const ADMIN_EMAIL = 'admin@e2e.test';
+export const ADMIN_PASSWORD = 'AdminPass123';
+
+export async function loginAdmin(request: APIRequestContext): Promise<string> {
+  const session = await login(request, ADMIN_EMAIL, ADMIN_PASSWORD);
+  return session.token;
+}
+
+export async function adminShipOrder(
+  request: APIRequestContext,
+  adminToken: string,
+  orderId: number,
+): Promise<void> {
+  const res = await request.put(`${API_BASE}/api/admin/orders/${orderId}/ship`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  if (res.status() !== 200) {
+    const body = await res.text();
+    throw new Error(`adminShipOrder failed: ${res.status()} ${body}`);
   }
 }

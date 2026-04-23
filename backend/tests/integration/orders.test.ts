@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { getApp } from '../helpers/app';
 import { seed, SeededData, Address, Product } from '../helpers/db';
-import { createUser, makeAuthed, type AuthedUser } from '../helpers/auth';
+import { createAdmin, createUser, makeAuthed, type AuthedUser } from '../helpers/auth';
 
 async function addToCart(authHeader: [string, string], productId: number, quantity: number): Promise<number> {
   const res = await request(getApp()).post('/api/cart').set(...authHeader).send({ productId, quantity });
@@ -305,12 +305,13 @@ describe('Orders API', () => {
 
     it('walks 待支付 -> 已支付 -> 已发货 -> 已完成', async () => {
       const id = await createOrder();
+      const admin = await createAdmin();
 
       const paid = await request(getApp()).put(`/api/orders/${id}/pay`).set(...me.authHeader);
       expect(paid.status).toBe(200);
       expect(paid.body.data.status).toBe('已支付');
 
-      const shipped = await request(getApp()).put(`/api/orders/${id}/ship`).set(...me.authHeader);
+      const shipped = await request(getApp()).put(`/api/admin/orders/${id}/ship`).set(...admin.authHeader);
       expect(shipped.status).toBe(200);
       expect(shipped.body.data.status).toBe('已发货');
 
@@ -319,11 +320,19 @@ describe('Orders API', () => {
       expect(done.body.data.status).toBe('已完成');
     });
 
-    it('rejects ship before pay', async () => {
+    it('admin ship rejects a 待支付 order (not yet paid)', async () => {
       const id = await createOrder();
-      const res = await request(getApp()).put(`/api/orders/${id}/ship`).set(...me.authHeader);
+      const admin = await createAdmin();
+      const res = await request(getApp()).put(`/api/admin/orders/${id}/ship`).set(...admin.authHeader);
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain('待支付');
+      expect(res.body.message).toContain('已支付');
+    });
+
+    it('non-admin ship endpoint returns 403', async () => {
+      const id = await createOrder();
+      await request(getApp()).put(`/api/orders/${id}/pay`).set(...me.authHeader);
+      const res = await request(getApp()).put(`/api/admin/orders/${id}/ship`).set(...me.authHeader);
+      expect(res.status).toBe(403);
     });
 
     it('rejects confirm before ship', async () => {
@@ -352,17 +361,18 @@ describe('Orders API', () => {
 
     it('rejects pay on completed order', async () => {
       const id = await createOrder();
+      const admin = await createAdmin();
       await request(getApp()).put(`/api/orders/${id}/pay`).set(...me.authHeader);
-      await request(getApp()).put(`/api/orders/${id}/ship`).set(...me.authHeader);
+      await request(getApp()).put(`/api/admin/orders/${id}/ship`).set(...admin.authHeader);
       await request(getApp()).put(`/api/orders/${id}/confirm`).set(...me.authHeader);
       const res = await request(getApp()).put(`/api/orders/${id}/pay`).set(...me.authHeader);
       expect(res.status).toBe(400);
     });
 
-    it('returns 404 for another user\'s order on transitions', async () => {
+    it('returns 404 for another user\'s order on pay/confirm', async () => {
       const id = await createOrder();
       const other = await createUser();
-      for (const action of ['pay', 'ship', 'confirm']) {
+      for (const action of ['pay', 'confirm']) {
         const res = await request(getApp()).put(`/api/orders/${id}/${action}`).set(...other.authHeader);
         expect(res.status).toBe(404);
       }
@@ -370,10 +380,11 @@ describe('Orders API', () => {
 
     it('does not restore stock on forward transitions', async () => {
       const id = await createOrder();
+      const admin = await createAdmin();
       const stockBefore = Number((await Product.findByPk(data.products[0].id))!.get('stock'));
 
       await request(getApp()).put(`/api/orders/${id}/pay`).set(...me.authHeader);
-      await request(getApp()).put(`/api/orders/${id}/ship`).set(...me.authHeader);
+      await request(getApp()).put(`/api/admin/orders/${id}/ship`).set(...admin.authHeader);
       await request(getApp()).put(`/api/orders/${id}/confirm`).set(...me.authHeader);
 
       const stockAfter = Number((await Product.findByPk(data.products[0].id))!.get('stock'));

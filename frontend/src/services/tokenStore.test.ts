@@ -25,7 +25,7 @@ describe('tokenStore', () => {
   });
 
   describe('user persistence', () => {
-    const user = { id: 1, username: 'a', email: 'a@b.c', avatar: null };
+    const user = { id: 1, username: 'a', email: 'a@b.c', avatar: null, role: 'user' as const };
 
     it('round-trips a user', () => {
       setStoredUser(user);
@@ -45,7 +45,7 @@ describe('tokenStore', () => {
   describe('clearAuth', () => {
     it('removes both token and user', () => {
       setStoredToken('t');
-      setStoredUser({ id: 1, username: 'a', email: 'a@b.c', avatar: null });
+      setStoredUser({ id: 1, username: 'a', email: 'a@b.c', avatar: null, role: 'user' });
       clearAuth();
       expect(getStoredToken()).toBeNull();
       expect(getStoredUser()).toBeNull();

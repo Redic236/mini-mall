@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
 import {
   addToCart,
+  adminShipOrder,
   createAddress,
   createOrder,
   listProducts,
+  loginAdmin,
   register,
   transitionOrder,
   uniqueCreds,
@@ -35,7 +37,8 @@ test('user can post a review on a completed order', async ({ page, request }) =>
   const cartId = await addToCart(request, token, tshirt.id, 1);
   const order = await createOrder(request, token, addressId, [cartId]);
   await transitionOrder(request, token, order.id, 'pay');
-  await transitionOrder(request, token, order.id, 'ship');
+  const adminToken = await loginAdmin(request);
+  await adminShipOrder(request, adminToken, order.id);
   await transitionOrder(request, token, order.id, 'confirm');
 
   await seedAuthStorage(page, token, user);

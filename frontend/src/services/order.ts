@@ -24,10 +24,6 @@ export async function payOrder(id: number): Promise<Order> {
   return unwrap<Order>(http.put<ApiResponse<Order>>(`/orders/${id}/pay`));
 }
 
-export async function shipOrder(id: number): Promise<Order> {
-  return unwrap<Order>(http.put<ApiResponse<Order>>(`/orders/${id}/ship`));
-}
-
 export async function confirmOrder(id: number): Promise<Order> {
   return unwrap<Order>(http.put<ApiResponse<Order>>(`/orders/${id}/confirm`));
 }

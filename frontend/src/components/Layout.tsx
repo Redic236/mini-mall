@@ -32,7 +32,13 @@ export default function Layout(): JSX.Element {
   const userMenu: MenuProps['items'] = [
     { key: 'profile', label: '个人资料', onClick: () => navigate('/profile') },
     { key: 'my-reviews', label: '我的评价', onClick: () => navigate('/my-reviews') },
-    { type: 'divider' },
+    ...(user?.role === 'admin'
+      ? [
+          { type: 'divider' as const },
+          { key: 'admin', label: '管理后台', onClick: () => navigate('/admin') },
+        ]
+      : []),
+    { type: 'divider', key: 'divider-logout' },
     { key: 'logout', label: '退出登录', onClick: handleLogout },
   ];
 

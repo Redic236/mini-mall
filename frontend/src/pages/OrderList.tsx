@@ -8,7 +8,6 @@ import {
   confirmOrderThunk,
   loadOrders,
   setStatusFilter,
-  shipOrderThunk,
 } from '@/store/slices/orderSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { ORDER_STATUS_VALUES, type Order, type OrderStatus } from '@/types';
@@ -84,17 +83,8 @@ export default function OrderList(): JSX.Element {
         ];
       }
       case '已支付':
-        return [
-          <Button
-            key="ship"
-            onClick={async () => {
-              await dispatch(shipOrderThunk(order.id));
-              toast('已发货');
-            }}
-          >
-            发货（管理）
-          </Button>,
-        ];
+        // Shipping is an admin action; user view just waits for the update.
+        return [];
       case '已发货':
         return [
           <Button

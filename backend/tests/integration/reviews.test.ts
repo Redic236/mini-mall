@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { getApp } from '../helpers/app';
 import { seed, SeededData } from '../helpers/db';
-import { createUser, makeAuthed, type AuthedUser } from '../helpers/auth';
+import { createAdmin, createUser, makeAuthed, type AuthedUser } from '../helpers/auth';
 
 /**
  * Walk an order through the full lifecycle to 已完成 so the user becomes
@@ -47,7 +47,8 @@ async function completeOrderWith(
   const orderId = order.body.data.id as number;
 
   await request(getApp()).put(`/api/orders/${orderId}/pay`).set(...me.authHeader);
-  await request(getApp()).put(`/api/orders/${orderId}/ship`).set(...me.authHeader);
+  const admin = await createAdmin();
+  await request(getApp()).put(`/api/admin/orders/${orderId}/ship`).set(...admin.authHeader);
   await request(getApp()).put(`/api/orders/${orderId}/confirm`).set(...me.authHeader);
 
   return orderId;
@@ -88,7 +89,8 @@ describe('Reviews API', () => {
         .set(...me.authHeader)
         .send({ addressId: data.address!.get('id'), cartItemIds: cart.body.data.items.map((it: { id: number }) => it.id) });
       await request(getApp()).put(`/api/orders/${order.body.data.id}/pay`).set(...me.authHeader);
-      await request(getApp()).put(`/api/orders/${order.body.data.id}/ship`).set(...me.authHeader);
+      const admin = await createAdmin();
+      await request(getApp()).put(`/api/admin/orders/${order.body.data.id}/ship`).set(...admin.authHeader);
 
       const res = await request(getApp())
         .post('/api/reviews')

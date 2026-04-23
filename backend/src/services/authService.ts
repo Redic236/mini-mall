@@ -24,6 +24,7 @@ export interface PublicUser {
   username: string;
   email: string;
   avatar: string | null;
+  role: 'user' | 'admin';
 }
 
 export interface AuthResult {
@@ -37,6 +38,7 @@ function toPublic(u: User): PublicUser {
     username: u.get('username') as string,
     email: u.get('email') as string,
     avatar: (u.get('avatar') as string | null) ?? null,
+    role: ((u.get('role') as 'user' | 'admin' | undefined) ?? 'user'),
   };
 }
 

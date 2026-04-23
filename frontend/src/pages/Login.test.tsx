@@ -26,7 +26,7 @@ function App(): JSX.Element {
   );
 }
 
-const user = { id: 1, username: 'alice', email: 'alice@example.com', avatar: null };
+const user = { id: 1, username: 'alice', email: 'alice@example.com', avatar: null, role: 'user' as const };
 
 describe('Login page', () => {
   beforeEach(() => {

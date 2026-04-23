@@ -6,7 +6,6 @@ import {
   fetchOrder,
   fetchOrders,
   payOrder,
-  shipOrder,
 } from '@/services/order';
 import type { Order, OrderStatus } from '@/types';
 
@@ -48,7 +47,7 @@ function makeTransitionThunk(
 
 export const cancelOrderThunk = makeTransitionThunk('cancel', cancelOrder);
 export const payOrderThunk = makeTransitionThunk('pay', payOrder);
-export const shipOrderThunk = makeTransitionThunk('ship', shipOrder);
+// Shipping moved to admin — see services/admin.ts `shipAdminOrder`.
 export const confirmOrderThunk = makeTransitionThunk('confirm', confirmOrder);
 
 const slice = createSlice({

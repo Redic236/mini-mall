@@ -127,6 +127,22 @@ npm run report               # 看上一次的 HTML 报告
 
 不是 prod 级方案：横向扩展时本地磁盘会裂。若要上 S3/OSS，只需替换 `backend/src/middleware/upload.ts` 里的 storage 即可，其他接口保持不变。
 
+## 管理后台
+
+`users` 表加了 `role` 列（`user` / `admin`），`/api/admin/*` 走 `requireAuth + requireAdmin` 中间件，非管理员命中返回 403。
+
+管理入口：登录后若是 admin，header 下拉菜单出现 **管理后台** → `/admin`。三页：
+- **总览** — 六块 tile：总订单数、今日订单、累计营收、待发货订单、商品总数、低库存商品
+- **订单管理** — 全站订单分页 + 按状态筛选 + **发货**按钮（管理员专属，原用户侧的"发货（管理）"按钮已撤下）
+- **商品管理** — 新增 / 编辑 / 删除（若商品已被订单引用则拒绝删除）
+
+提权方式：
+```bash
+cd backend
+npm run admin:promote -- user@example.com
+```
+脚本直接连 `mini_mall` 把指定邮箱的用户 `role` 设为 `admin`。E2E 环境由 `seed-e2e.ts` 固定创建 `admin@e2e.test / AdminPass123`。
+
 ## 支付沙箱
 
 订单的 `待支付 → 已支付` 流转从"一键切状态"升级成了一个小型的模拟网关流：

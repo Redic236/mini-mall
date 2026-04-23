@@ -6,7 +6,8 @@ import orderRoutes from './orderRoutes';
 import addressRoutes from './addressRoutes';
 import reviewRoutes from './reviewRoutes';
 import paymentRoutes from './paymentRoutes';
-import { requireAuth } from '../middleware/auth';
+import adminRoutes from './adminRoutes';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.use('/payments', paymentRoutes);
 router.use('/cart', requireAuth, cartRoutes);
 router.use('/orders', requireAuth, orderRoutes);
 router.use('/addresses', requireAuth, addressRoutes);
+
+// Admin-only: requireAuth + requireAdmin chained in order.
+router.use('/admin', requireAuth, requireAdmin, adminRoutes);
 
 export default router;

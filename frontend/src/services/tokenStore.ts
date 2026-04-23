@@ -6,6 +6,7 @@ export interface StoredUser {
   username: string;
   email: string;
   avatar: string | null;
+  role: 'user' | 'admin';
 }
 
 export function getStoredToken(): string | null {

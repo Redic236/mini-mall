@@ -322,10 +322,6 @@ export async function payOrder(userId: number, id: number): Promise<Order> {
   return transitionOrder(userId, id, ORDER_STATUS.PAID, 'order.pay');
 }
 
-export async function shipOrder(userId: number, id: number): Promise<Order> {
-  return transitionOrder(userId, id, ORDER_STATUS.SHIPPED, 'order.ship');
-}
-
 export async function confirmOrder(userId: number, id: number): Promise<Order> {
   return transitionOrder(userId, id, ORDER_STATUS.DONE, 'order.confirm');
 }

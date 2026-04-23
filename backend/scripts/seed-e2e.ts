@@ -12,7 +12,8 @@
 import mysql from 'mysql2/promise';
 import 'dotenv/config';
 import { sequelize } from '../src/config/database';
-import { Product } from '../src/models';
+import { Product, User, USER_ROLE } from '../src/models';
+import { hashPassword } from '../src/utils/password';
 
 async function main(): Promise<void> {
   const host = process.env.DB_HOST ?? '127.0.0.1';
@@ -41,6 +42,16 @@ async function main(): Promise<void> {
     { name: 'E2E Jeans', price: 199, stock: 50, description: 'apparel fixture', category: '服装', image: null },
     { name: 'E2E Sneakers', price: 399, stock: 10, description: 'footwear fixture', category: '鞋履', image: null },
   ]);
+
+  // Fixed admin account for admin-flavoured specs. Credentials are public
+  // in the E2E helpers — this DB is thrown away per run.
+  await User.create({
+    username: 'e2eadmin',
+    email: 'admin@e2e.test',
+    passwordHash: await hashPassword('AdminPass123'),
+    avatar: null,
+    role: USER_ROLE.ADMIN,
+  });
 
   await sequelize.close();
   process.stdout.write(`E2E seed complete (${dbName})\n`);

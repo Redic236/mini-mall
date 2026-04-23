@@ -17,6 +17,7 @@
     "migrate:status": "tsx scripts/migrate.ts status",
     "e2e:seed": "cross-env DB_NAME=mini_mall_e2e E2E=true tsx scripts/seed-e2e.ts",
     "e2e:dev": "cross-env DB_NAME=mini_mall_e2e E2E=true tsx watch src/server.ts",
+    "admin:promote": "tsx scripts/promote-admin.ts",
     "verify": "npm run typecheck && npm test",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\""

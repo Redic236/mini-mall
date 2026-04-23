@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import {
   addToCart,
+  adminShipOrder,
   createAddress,
   listProducts,
+  loginAdmin,
   register,
   uniqueCreds,
 } from '../helpers/api';
@@ -57,7 +59,23 @@ test.describe('Order lifecycle', () => {
     await expect(page).toHaveURL('/orders');
     await expect(orderRow.getByText('已支付')).toBeVisible();
 
-    await orderRow.getByRole('button', { name: /发\s*货（管理）/ }).click();
+    // Ship is an admin-only action — drive it via API with the seeded admin
+    // token. Order id was created above; we re-derive it from the order row
+    // via the network response is brittle, so just grab the list: since each
+    // test registers a fresh customer and adds one order, the first (only)
+    // admin-visible order belonging to this run is the one we want. Simpler
+    // path: ask the backend directly for this customer's orders.
+    const adminToken = await loginAdmin(request);
+    const ordersRes = await request.get('http://localhost:3001/api/orders', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const ordersBody = (await ordersRes.json()) as { data: Array<{ id: number; status: string }> };
+    const paidOrder = ordersBody.data.find((o) => o.status === '已支付');
+    if (!paidOrder) throw new Error('expected a 已支付 order for this customer');
+    await adminShipOrder(request, adminToken, paidOrder.id);
+
+    // Reload the page to pick up the admin-driven status change.
+    await page.reload();
     await expect(orderRow.getByText('已发货')).toBeVisible();
 
     await orderRow.getByRole('button', { name: /确认收货/ }).click();

@@ -5,11 +5,14 @@ export interface ApiResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+export type UserRole = 'user' | 'admin';
+
 export interface User {
   id: number;
   username: string;
   email: string;
   avatar: string | null;
+  role: UserRole;
 }
 
 export interface AuthResult {

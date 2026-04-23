@@ -21,7 +21,7 @@ function makeStore() {
   return configureStore({ reducer: { auth: authReducer } });
 }
 
-const sampleUser = { id: 1, username: 'alice', email: 'a@b.c', avatar: null };
+const sampleUser = { id: 1, username: 'alice', email: 'a@b.c', avatar: null, role: 'user' as const };
 
 describe('authSlice', () => {
   beforeEach(() => {

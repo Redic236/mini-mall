@@ -6,5 +6,6 @@ export type { OrderStatus } from './Order';
 export { OrderItem } from './OrderItem';
 export { Payment, PAYMENT_METHOD, PAYMENT_STATUS } from './Payment';
 export type { PaymentMethod, PaymentStatus } from './Payment';
-export { User } from './User';
+export { User, USER_ROLE } from './User';
+export type { UserRole } from './User';
 export { Review } from './Review';

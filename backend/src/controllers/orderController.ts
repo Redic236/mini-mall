@@ -64,16 +64,6 @@ export async function pay(req: Request, res: Response, next: NextFunction): Prom
   }
 }
 
-export async function ship(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const id = parseOrThrow(idSchema, req.params.id, 'id');
-    const order = await orderService.shipOrder(getUserId(req), id);
-    res.json(ok(order));
-  } catch (err) {
-    next(err);
-  }
-}
-
 export async function confirm(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const id = parseOrThrow(idSchema, req.params.id, 'id');

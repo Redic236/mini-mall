@@ -28,7 +28,7 @@ function App(): JSX.Element {
   );
 }
 
-const sampleUser = { id: 1, username: 'alice', email: 'a@b.c', avatar: null };
+const sampleUser = { id: 1, username: 'alice', email: 'a@b.c', avatar: null, role: 'user' as const };
 
 describe('RequireAuth', () => {
   it('redirects to /login when not authenticated', () => {

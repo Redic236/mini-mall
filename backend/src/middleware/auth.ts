@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { User } from '../models';
+import { User, USER_ROLE } from '../models';
+import type { UserRole } from '../models';
 import { HttpError } from '../utils/apiResponse';
 import { verifyToken } from '../utils/jwt';
 
@@ -10,6 +11,7 @@ declare module 'express-serve-static-core' {
       id: number;
       username: string;
       email: string;
+      role: UserRole;
     };
   }
 }
@@ -34,6 +36,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       id: user.get('id') as number,
       username: user.get('username') as string,
       email: user.get('email') as string,
+      role: (user.get('role') as UserRole) ?? USER_ROLE.USER,
     };
     next();
   } catch (err) {
@@ -44,4 +47,20 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 export function getUserId(req: Request): number {
   if (!req.user) throw new HttpError(401, '未登录');
   return req.user.id;
+}
+
+/**
+ * Gate for admin-only endpoints. Assumes requireAuth ran first so req.user
+ * is populated — mount both on the route chain.
+ */
+export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) {
+    next(new HttpError(401, '未登录'));
+    return;
+  }
+  if (req.user.role !== USER_ROLE.ADMIN) {
+    next(new HttpError(403, '需要管理员权限'));
+    return;
+  }
+  next();
 }

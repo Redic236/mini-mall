@@ -12,7 +12,7 @@ router.post('/:id/pay-intent', paymentController.createPayIntent);
 router.get('/:orderId/payments', paymentController.listOrderPayments);
 // Kept for tests and admin — real traffic now goes through /pay-intent.
 router.put('/:id/pay', orderController.pay);
-router.put('/:id/ship', orderController.ship);
+// Shipping is an admin action — the endpoint lives under /api/admin/orders/:id/ship.
 router.put('/:id/confirm', orderController.confirm);
 router.put('/:id/cancel', orderController.cancel);
 

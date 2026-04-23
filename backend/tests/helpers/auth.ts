@@ -1,4 +1,5 @@
-import { User } from '../../src/models';
+import { User, USER_ROLE } from '../../src/models';
+import type { UserRole } from '../../src/models';
 import { signToken } from '../../src/utils/jwt';
 import { hashPassword } from '../../src/utils/password';
 
@@ -18,7 +19,7 @@ export async function makeAuthed(user: User): Promise<AuthedUser> {
 }
 
 export async function createUser(
-  overrides: Partial<{ username: string; email: string; password: string }> = {},
+  overrides: Partial<{ username: string; email: string; password: string; role: UserRole }> = {},
 ): Promise<AuthedUser> {
   const username = overrides.username ?? `u${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const email = overrides.email ?? `${username}@example.com`;
@@ -28,6 +29,11 @@ export async function createUser(
     email,
     passwordHash: await hashPassword(password),
     avatar: null,
+    role: overrides.role ?? USER_ROLE.USER,
   });
   return makeAuthed(user);
+}
+
+export async function createAdmin(): Promise<AuthedUser> {
+  return createUser({ role: USER_ROLE.ADMIN });
 }
