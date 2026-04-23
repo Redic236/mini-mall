@@ -12,6 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "migrate": "tsx scripts/migrate.ts up",
+    "migrate:down": "tsx scripts/migrate.ts down",
+    "migrate:status": "tsx scripts/migrate.ts status",
     "verify": "npm run typecheck && npm test",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\""
@@ -25,6 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.11.0",
     "sequelize": "^6.37.3",
+    "umzug": "^3.8.2",
     "winston": "^3.13.1",
     "zod": "^4.3.6"
   },

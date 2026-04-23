@@ -99,6 +99,26 @@ npm run test:watch
 npm run test:coverage
 ```
 
+## 数据库迁移
+
+使用 [Umzug](https://github.com/sequelize/umzug)（Sequelize 自家）管理增量 schema 变更，避免"改了 init.sql 但线上已经跑过"的尴尬。
+
+目录 `backend/src/migrations/` 每个文件按 `NNN-description.ts` 命名，导出 `up({ context })` / `down({ context })`，记录表是 `SequelizeMeta`。
+
+```bash
+cd backend
+npm run migrate:status   # 看哪些已应用 / 哪些待应用
+npm run migrate          # 应用全部未应用的
+npm run migrate:down     # 回滚最近一条
+```
+
+**每次改 schema 都同时改两处**：
+
+1. `database/init.sql` — 新库（Docker 首次 up）直接拿到新 schema
+2. 新增 `backend/src/migrations/NNN-xxx.ts` — 已有库通过 `npm run migrate` 对齐
+
+两条路径最终应该得到同一份 schema。迁移刻意不在 backend 启动钩子里跑，避免启动时悄悄改表。
+
 ## CI
 
 GitHub Actions 配置在 [.github/workflows/ci.yml](.github/workflows/ci.yml)，每次 push / PR 触发：

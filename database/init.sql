@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   KEY `idx_orders_user_id` (`userId`),
   KEY `idx_orders_address_id` (`addressId`),
   KEY `idx_orders_status` (`status`),
+  KEY `idx_orders_status_created_at` (`status`, `createdAt`),
   CONSTRAINT `chk_orders_total_nonneg` CHECK (`totalAmount` >= 0),
   CONSTRAINT `fk_orders_user`
     FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
