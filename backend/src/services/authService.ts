@@ -1,9 +1,12 @@
+import fs from 'node:fs';
 import { Op } from 'sequelize';
 import { User } from '../models';
 import { HttpError } from '../utils/apiResponse';
 import { audit } from '../utils/audit';
 import { signToken } from '../utils/jwt';
 import { hashPassword, verifyPassword } from '../utils/password';
+import { localPathFromAvatarUrl } from '../config/uploads';
+import { logger } from '../utils/logger';
 
 export interface RegisterInput {
   username: string;
@@ -82,5 +85,34 @@ export async function login(input: LoginInput): Promise<AuthResult> {
 export async function getCurrentUser(userId: number): Promise<PublicUser> {
   const user = await User.findByPk(userId);
   if (!user) throw new HttpError(404, '用户不存在');
+  return toPublic(user);
+}
+
+/**
+ * Swap the user's stored avatar URL. The new file has already been written
+ * to disk by multer at this point; we just persist the URL and try to
+ * delete the previous local file (best-effort — a missing old file or an
+ * externally-hosted URL shouldn't block the update).
+ */
+export async function updateAvatar(userId: number, avatarUrl: string): Promise<PublicUser> {
+  const user = await User.findByPk(userId);
+  if (!user) throw new HttpError(404, '用户不存在');
+
+  const previous = user.get('avatar') as string | null;
+  user.set('avatar', avatarUrl);
+  await user.save();
+
+  if (previous) {
+    const oldPath = localPathFromAvatarUrl(previous);
+    if (oldPath) {
+      fs.promises.unlink(oldPath).catch((err: NodeJS.ErrnoException) => {
+        if (err.code !== 'ENOENT') {
+          logger.warn('Failed to delete previous avatar', { path: oldPath, err: err.message });
+        }
+      });
+    }
+  }
+
+  audit({ event: 'user.avatar.update', entity: 'user', entityId: userId, details: { avatar: avatarUrl } });
   return toPublic(user);
 }

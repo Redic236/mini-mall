@@ -24,6 +24,9 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
+# Pre-create the uploads dir owned by `node` so the runtime user can write to
+# it even before the named volume is mounted (e.g. on a fresh dev box).
+RUN mkdir -p /app/uploads/avatars && chown -R node:node /app/uploads
 USER node
 EXPOSE 3001
 CMD ["node", "dist/server.js"]

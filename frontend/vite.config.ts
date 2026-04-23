@@ -16,6 +16,13 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Uploaded avatar files live on the backend — proxy /uploads too so
+      // <img src="/uploads/..." /> resolves in dev the same way it does in
+      // the nginx-fronted production setup.
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
   build: {

@@ -1,5 +1,6 @@
 import express, { Application } from 'express';
 import helmet from 'helmet';
+import { UPLOADS_ROOT, ensureUploadsDir } from './config/uploads';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiRateLimiter, authRateLimiter, writeRateLimiter } from './middleware/rateLimit';
@@ -27,6 +28,12 @@ export function createApp(): Application {
   app.use(corsMiddleware);
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
+
+  // Serve user-uploaded files. Multer has already neutralised the filenames
+  // (random slug, extension from whitelist), and the directory sits outside
+  // any code path, so express.static is safe here.
+  ensureUploadsDir();
+  app.use('/uploads', express.static(UPLOADS_ROOT, { index: false, fallthrough: false }));
 
   // Global limiter on all API routes
   app.use('/api', apiRateLimiter);

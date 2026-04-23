@@ -51,6 +51,11 @@ services:
         condition: service_healthy
     ports:
       - "3001:3001"
+    volumes:
+      # Persist user-uploaded avatars across container rebuilds. The backend
+      # writes to /app/uploads (cwd inside the image); named volume keeps them
+      # alive between `docker compose up --build` cycles.
+      - backend-uploads:/app/uploads
 
   frontend:
     build:
@@ -63,3 +68,4 @@ services:
 
 volumes:
   mysql-data:
+  backend-uploads:

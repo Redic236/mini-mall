@@ -1,6 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
+import multer from 'multer';
 import { HttpError, fail } from '../utils/apiResponse';
 import { logger } from '../utils/logger';
+
+const MULTER_MESSAGES: Record<string, string> = {
+  LIMIT_FILE_SIZE: '文件过大',
+  LIMIT_FILE_COUNT: '文件数量超出限制',
+  LIMIT_UNEXPECTED_FILE: '上传字段名错误',
+};
 
 export function errorHandler(
   err: Error,
@@ -10,6 +17,12 @@ export function errorHandler(
 ): void {
   if (err instanceof HttpError) {
     res.status(err.statusCode).json(fail(err.message));
+    return;
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message = MULTER_MESSAGES[err.code] ?? '上传失败';
+    res.status(400).json(fail(message));
     return;
   }
 

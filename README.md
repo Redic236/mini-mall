@@ -115,6 +115,18 @@ npm run report               # 看上一次的 HTML 报告
 - Playwright 自启 backend（`npm run e2e:dev`）和 frontend（`npm run dev`）。跑前请确保 `3001` 和 `5173` 没被占用（Docker stack 同时起着的话先 `docker compose stop`）。
 - 后端进入 E2E 模式会 bypass rate limiter（`E2E=true` 触发 middleware 绕行），避免多个 spec 连续注册被限速。
 
+## 文件上传
+
+头像上传走本地磁盘，存在 `backend/uploads/avatars/` 下。线上用 docker-compose 的 `backend-uploads` named volume 持久化，镜像每次重建不会掉头像。
+
+- 服务端：`POST /api/auth/me/avatar`（multipart，字段名 `avatar`，登录必须）
+- 白名单：`image/jpeg` / `image/png` / `image/webp`，≤ 2 MB
+- 命名：multer 用 UUID + 白名单扩展名生成，不信任客户端 filename
+- 旧头像：若是本站上传（`/uploads/` 前缀）会 best-effort 删除；外链 URL（如 seed 用的 picsum）原样留着，不碰文件系统
+- 静态服务：`app.use('/uploads', express.static(...))`，在 dev 由 Vite 代理、在 docker 由 nginx 代理到 backend
+
+不是 prod 级方案：横向扩展时本地磁盘会裂。若要上 S3/OSS，只需替换 `backend/src/middleware/upload.ts` 里的 storage 即可，其他接口保持不变。
+
 ## 数据库迁移
 
 使用 [Umzug](https://github.com/sequelize/umzug)（Sequelize 自家）管理增量 schema 变更，避免"改了 init.sql 但线上已经跑过"的尴尬。

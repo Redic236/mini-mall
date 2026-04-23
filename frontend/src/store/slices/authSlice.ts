@@ -3,6 +3,7 @@ import {
   fetchMe,
   login as loginRequest,
   register as registerRequest,
+  uploadAvatar as uploadAvatarRequest,
   type LoginInput,
   type RegisterInput,
 } from '@/services/auth';
@@ -41,6 +42,12 @@ export const registerThunk = createAsyncThunk('auth/register', async (input: Reg
   setStoredToken(result.token);
   setStoredUser(result.user);
   return result;
+});
+
+export const uploadAvatarThunk = createAsyncThunk('auth/uploadAvatar', async (file: File) => {
+  const updated = await uploadAvatarRequest(file);
+  setStoredUser(updated);
+  return updated;
 });
 
 // Validates the persisted token against /auth/me on app boot. If it fails,
@@ -90,6 +97,9 @@ const slice = createSlice({
       })
       .addCase(registerThunk.rejected, (state) => {
         state.loading = false;
+      })
+      .addCase(uploadAvatarThunk.fulfilled, (state, action: PayloadAction<User>) => {
+        if (state.user) state.user = action.payload;
       })
       .addCase(hydrateSession.fulfilled, (state, action) => {
         state.initialized = true;
