@@ -190,7 +190,7 @@ export async function updateCoupon(id: number, input: CouponInput): Promise<Coup
   coupon.set('perUserLimit', input.perUserLimit);
   if (input.isActive !== undefined) coupon.set('isActive', input.isActive);
   await coupon.save();
-  audit({ event: 'admin.coupon.update', entity: 'user', entityId: id, details: { code: input.code } });
+  audit({ event: 'admin.coupon.update', entity: 'coupon', entityId: id, details: { code: input.code } });
   return coupon;
 }
 
@@ -203,5 +203,5 @@ export async function deleteCoupon(id: number): Promise<void> {
     throw new HttpError(400, '该优惠券已被订单使用，建议改为停用而非删除');
   }
   await coupon.destroy();
-  audit({ event: 'admin.coupon.delete', entity: 'user', entityId: id });
+  audit({ event: 'admin.coupon.delete', entity: 'coupon', entityId: id });
 }
