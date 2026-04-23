@@ -7,6 +7,12 @@ CREATE DATABASE IF NOT EXISTS `mini_mall`
 
 USE `mini_mall`;
 
+-- When this file is imported by the MySQL docker entrypoint, the default
+-- client charset can be latin1, which double-encodes any non-ASCII bytes
+-- (like the Chinese product names below) on the way in. SET NAMES pins
+-- the connection to utf8mb4 for the rest of the file.
+SET NAMES utf8mb4;
+
 -- -------------------------------
 -- users
 -- -------------------------------
