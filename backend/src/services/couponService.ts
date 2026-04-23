@@ -193,6 +193,18 @@ export async function updateCoupon(id: number, input: CouponInput): Promise<Coup
     if (clash) throw new HttpError(409, '优惠券码已存在');
   }
 
+  // totalQuantity === null means unlimited and is always allowed. Otherwise
+  // it must not drop below what's already been redeemed, or the invariant
+  // "remaining = totalQuantity - usedCount >= 0" breaks and usedCount
+  // rollback on cancel would produce a negative "remaining" slot.
+  const currentUsed = coupon.get('usedCount') as number;
+  if (input.totalQuantity !== null && input.totalQuantity < currentUsed) {
+    throw new HttpError(
+      400,
+      `totalQuantity 不能低于已使用次数（当前 usedCount=${currentUsed}）`,
+    );
+  }
+
   coupon.set('code', input.code);
   coupon.set('name', input.name);
   coupon.set('type', input.type);

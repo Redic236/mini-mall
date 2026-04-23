@@ -281,8 +281,13 @@ describe('Coupons', () => {
       const p2 = data.products[1];
       const add1 = await request(getApp()).post('/api/cart').set(...me.authHeader).send({ productId: p1.id, quantity: 1 });
       const add2 = await request(getApp()).post('/api/cart').set(...me.authHeader).send({ productId: p2.id, quantity: 1 });
-      const cartId1 = add1.body.data.id;
-      const cartId2 = add2.body.data.id;
+      const findCartId = (body: { data: { items: Array<{ id: number; productId: number }> } }, pid: number): number => {
+        const m = body.data.items.find((it) => it.productId === pid);
+        if (!m) throw new Error(`productId ${pid} missing from cart`);
+        return m.id;
+      };
+      const cartId1 = findCartId(add1.body, p1.id);
+      const cartId2 = findCartId(add2.body, p2.id);
 
       const body = {
         addressId: data.address!.get('id'),
@@ -389,6 +394,44 @@ describe('Coupons', () => {
 
       const del = await request(getApp()).delete(`/api/admin/coupons/${id}`).set(...admin.authHeader);
       expect(del.status).toBe(204);
+    });
+
+    it('refuses to update totalQuantity below the existing usedCount', async () => {
+      // Seed a coupon that's already been redeemed twice by the fixture user.
+      await Coupon.create({
+        code: 'OVERCAP',
+        name: 'cap test',
+        type: COUPON_TYPE.FIXED,
+        value: 5,
+        minOrderAmount: 0,
+        startsAt: iso(-1),
+        expiresAt: iso(1),
+        totalQuantity: 10,
+        perUserLimit: 2,
+        isActive: true,
+      });
+      await placeOrder(me, data, data.products[0].id, 1, 'OVERCAP');
+      await placeOrder(me, data, data.products[1].id, 1, 'OVERCAP');
+      const coupon = await Coupon.findOne({ where: { code: 'OVERCAP' } });
+      expect(coupon!.get('usedCount')).toBe(2);
+
+      const res = await request(getApp())
+        .put(`/api/admin/coupons/${coupon!.get('id')}`)
+        .set(...admin.authHeader)
+        .send({
+          code: 'OVERCAP',
+          name: 'cap test',
+          type: 'fixed',
+          value: 5,
+          minOrderAmount: 0,
+          startsAt: iso(-1).toISOString(),
+          expiresAt: iso(1).toISOString(),
+          totalQuantity: 1, // below usedCount=2
+          perUserLimit: 2,
+          isActive: true,
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/totalQuantity|usedCount/);
     });
 
     it('refuses to delete a coupon already used on an order', async () => {
