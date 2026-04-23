@@ -86,14 +86,28 @@ export async function validateCouponForOrder(
   // Count how many non-cancelled orders this user already placed with this
   // coupon. Cancelled orders free up the claim — mirrors the usedCount
   // rollback in cancelPendingInTxn.
-  const perUserUsed = await Order.count({
-    where: {
-      userId,
-      couponId,
-      status: { [Op.ne]: '已取消' },
-    },
-    transaction,
-  });
+  //
+  // Use a LOCKING read (FOR UPDATE) rather than a plain count when we hold a
+  // transaction: under REPEATABLE READ, a non-locking count would use the
+  // transaction's snapshot, which was established at the *start* of the
+  // order-creation flow (well before the coupon row lock was acquired) and
+  // therefore would not see a sibling transaction's just-committed order.
+  // The locking read always reads latest committed + places gap/next-key
+  // locks that prevent phantom inserts on (userId, couponId).
+  let perUserUsed: number;
+  if (transaction) {
+    const existing = await Order.findAll({
+      where: { userId, couponId, status: { [Op.ne]: '已取消' } },
+      attributes: ['id'],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    perUserUsed = existing.length;
+  } else {
+    perUserUsed = await Order.count({
+      where: { userId, couponId, status: { [Op.ne]: '已取消' } },
+    });
+  }
   if (perUserUsed >= perUserLimit) {
     throw new HttpError(400, '已达到该优惠券使用次数上限');
   }

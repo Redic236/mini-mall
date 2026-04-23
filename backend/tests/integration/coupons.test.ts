@@ -266,6 +266,42 @@ describe('Coupons', () => {
       expect(res.body.message).toContain('领完');
     });
 
+    it('serializes concurrent redemptions by the same user via the coupon FOR UPDATE lock', async () => {
+      // Regression test: an earlier review claimed two parallel same-user
+      // requests could both pass the perUserLimit check because the coupon
+      // row lock "only serializes across users". InnoDB row locks are not
+      // user-scoped — FOR UPDATE on the coupon row blocks any second
+      // transaction until the first commits. Exactly one redemption should
+      // succeed; the other must fail with the limit message.
+      await makeCoupon({ perUserLimit: 1 });
+
+      // Use two distinct products so two cart rows can coexist
+      // (cart has a unique (userId, productId) constraint).
+      const p1 = data.products[0];
+      const p2 = data.products[1];
+      const add1 = await request(getApp()).post('/api/cart').set(...me.authHeader).send({ productId: p1.id, quantity: 1 });
+      const add2 = await request(getApp()).post('/api/cart').set(...me.authHeader).send({ productId: p2.id, quantity: 1 });
+      const cartId1 = add1.body.data.id;
+      const cartId2 = add2.body.data.id;
+
+      const body = {
+        addressId: data.address!.get('id'),
+        couponCode: 'WELCOME10',
+      };
+      const [res1, res2] = await Promise.all([
+        request(getApp()).post('/api/orders').set(...me.authHeader).send({ ...body, cartItemIds: [cartId1] }),
+        request(getApp()).post('/api/orders').set(...me.authHeader).send({ ...body, cartItemIds: [cartId2] }),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([201, 400]);
+      const failed = res1.status === 400 ? res1 : res2;
+      expect(failed.body.message).toMatch(/使用次数上限|领完/);
+
+      const coupon = await Coupon.findOne({ where: { code: 'WELCOME10' } });
+      expect(coupon!.get('usedCount')).toBe(1);
+    });
+
     it('cancelling the order rolls back usedCount and frees the per-user claim', async () => {
       await makeCoupon({ perUserLimit: 1 });
       const p = data.products[0];
