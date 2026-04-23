@@ -95,3 +95,15 @@ export const createOrderBodySchema = z.object({
 export const orderStatusQuerySchema = z
   .enum(['待支付', '已支付', '已发货', '已完成', '已取消'])
   .optional();
+
+// Payments (sandbox)
+export const payIntentBodySchema = z.object({
+  method: z.enum(['alipay_sandbox', 'wechat_sandbox']),
+});
+
+export const paymentCallbackBodySchema = z.object({
+  paymentId: positiveIntSchema,
+  outcome: z.enum(['success', 'failed', 'cancelled']),
+  amount: nonNegativeNumberSchema,
+  signature: z.string().regex(/^[a-f0-9]{64}$/, 'signature 格式错误'),
+});

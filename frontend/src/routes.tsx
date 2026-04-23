@@ -13,6 +13,7 @@ const OrderList = lazy(() => import('@/pages/OrderList'));
 const AddressManagement = lazy(() => import('@/pages/AddressManagement'));
 const MyReviews = lazy(() => import('@/pages/MyReviews'));
 const Profile = lazy(() => import('@/pages/Profile'));
+const Checkout = lazy(() => import('@/pages/Checkout'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 
@@ -70,6 +71,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <Profile />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'checkout',
+        element: (
+          <RequireAuth>
+            <Checkout />
           </RequireAuth>
         ),
       },

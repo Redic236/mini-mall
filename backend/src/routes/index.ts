@@ -5,6 +5,7 @@ import cartRoutes from './cartRoutes';
 import orderRoutes from './orderRoutes';
 import addressRoutes from './addressRoutes';
 import reviewRoutes from './reviewRoutes';
+import paymentRoutes from './paymentRoutes';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -17,6 +18,9 @@ router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
 // Reviews: GET is public, writes are auth-gated inside the router.
 router.use('/reviews', reviewRoutes);
+// Payments: /callback is public (HMAC-authenticated), /:id needs a user
+// token. The router itself handles the split.
+router.use('/payments', paymentRoutes);
 
 // Everything below requires authentication.
 router.use('/cart', requireAuth, cartRoutes);

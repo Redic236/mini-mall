@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Empty, List, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
+import { Button, Dropdown, Empty, List, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
+import type { MenuProps } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import {
   cancelOrderThunk,
   confirmOrderThunk,
   loadOrders,
-  payOrderThunk,
   setStatusFilter,
   shipOrderThunk,
 } from '@/store/slices/orderSlice';
@@ -13,6 +14,8 @@ import { useAppDispatch, useAppSelector } from '@/store/store';
 import { ORDER_STATUS_VALUES, type Order, type OrderStatus } from '@/types';
 import { formatCNY } from '@/utils/format';
 import OrderCountdown from '@/components/OrderCountdown';
+import { createPayIntent } from '@/services/payment';
+import { stashPaymentSignatures } from '@/pages/Checkout';
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   待支付: 'orange',
@@ -24,7 +27,9 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 
 export default function OrderList(): JSX.Element {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { list, loading, statusFilter } = useAppSelector((s) => s.orders);
+  const [payingOrderId, setPayingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     void dispatch(loadOrders(statusFilter ?? undefined));
@@ -34,23 +39,38 @@ export default function OrderList(): JSX.Element {
     dispatch(setStatusFilter(value));
   };
 
+  const startPayment = async (
+    order: Order,
+    method: 'alipay_sandbox' | 'wechat_sandbox',
+  ): Promise<void> => {
+    setPayingOrderId(order.id);
+    try {
+      const intent = await createPayIntent(order.id, method);
+      stashPaymentSignatures(intent.paymentId, intent.amount, intent.debugSignatures);
+      navigate(intent.gatewayUrl);
+    } catch {
+      // http interceptor surfaces the error toast
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   const actionsFor = (order: Order): ReactNode[] => {
     const toast = (msg: string): void => {
       void message.success(msg);
     };
     switch (order.status) {
-      case '待支付':
+      case '待支付': {
+        const payMethods: MenuProps['items'] = [
+          { key: 'alipay', label: '支付宝（沙箱）', onClick: () => void startPayment(order, 'alipay_sandbox') },
+          { key: 'wechat', label: '微信支付（沙箱）', onClick: () => void startPayment(order, 'wechat_sandbox') },
+        ];
         return [
-          <Button
-            key="pay"
-            type="primary"
-            onClick={async () => {
-              await dispatch(payOrderThunk(order.id));
-              toast('已支付');
-            }}
-          >
-            支付
-          </Button>,
+          <Dropdown key="pay" menu={{ items: payMethods }} placement="bottomRight">
+            <Button type="primary" loading={payingOrderId === order.id}>
+              去支付
+            </Button>
+          </Dropdown>,
           <Popconfirm
             key="cancel"
             title="确认取消此订单？"
@@ -62,6 +82,7 @@ export default function OrderList(): JSX.Element {
             <Button danger>取消订单</Button>
           </Popconfirm>,
         ];
+      }
       case '已支付':
         return [
           <Button

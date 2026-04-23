@@ -1,10 +1,10 @@
 import { sequelize } from '../../src/config/database';
-import { Address, Cart, Order, OrderItem, ORDER_STATUS, Product, User } from '../../src/models';
+import { Address, Cart, Order, OrderItem, ORDER_STATUS, Payment, PAYMENT_STATUS, Product, User } from '../../src/models';
 import { hashPassword } from '../../src/utils/password';
 
 export async function truncateAll(): Promise<void> {
   // DELETE in FK-safe order (children before parents).
-  for (const table of ['reviews', 'order_items', 'orders', 'carts', 'addresses', 'products', 'users']) {
+  for (const table of ['reviews', 'payments', 'order_items', 'orders', 'carts', 'addresses', 'products', 'users']) {
     await sequelize.query(`DELETE FROM \`${table}\``);
   }
 }
@@ -59,4 +59,4 @@ export async function seed(options: SeedOptions = { products: true, address: tru
   return { user, products, address };
 }
 
-export { Address, Cart, Order, OrderItem, ORDER_STATUS, Product, User };
+export { Address, Cart, Order, OrderItem, ORDER_STATUS, Payment, PAYMENT_STATUS, Product, User };

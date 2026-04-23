@@ -172,6 +172,31 @@ CREATE TABLE IF NOT EXISTS `reviews` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------
+-- payments (sandbox 支付流水)
+-- -------------------------------
+CREATE TABLE IF NOT EXISTS `payments` (
+  `id`          INT            NOT NULL AUTO_INCREMENT,
+  `orderId`     INT            NOT NULL,
+  `userId`      INT            NOT NULL,
+  `method`      VARCHAR(50)    NOT NULL,
+  `amount`      DECIMAL(10, 2) NOT NULL,
+  `status`      VARCHAR(20)    NOT NULL DEFAULT 'pending',
+  `gatewayTxId` VARCHAR(64)    NULL,
+  `paidAt`      DATETIME       NULL,
+  `createdAt`   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_payments_order_id` (`orderId`),
+  KEY `idx_payments_user_id` (`userId`),
+  KEY `idx_payments_status` (`status`),
+  CONSTRAINT `chk_payments_amount_nonneg` CHECK (`amount` >= 0),
+  CONSTRAINT `fk_payments_order`
+    FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_payments_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------
 -- Seed data (示例商品)
 -- -------------------------------
 INSERT INTO `products` (`name`, `price`, `description`, `category`, `image`, `stock`) VALUES

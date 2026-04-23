@@ -44,6 +44,8 @@ services:
       CORS_ORIGIN: http://localhost:8080
       # Rotate before any real deployment. Left as a dev default here.
       JWT_SECRET: dev-docker-secret-change-me
+      # HMAC secret for the sandbox payment callback; same rotation rules apply.
+      PAYMENT_SANDBOX_SECRET: dev-docker-payment-secret-change-me
       # 待支付订单超过此分钟数后由后台定时任务自动取消并返还库存。
       ORDER_EXPIRY_MINUTES: 30
     depends_on:

@@ -127,6 +127,21 @@ npm run report               # 看上一次的 HTML 报告
 
 不是 prod 级方案：横向扩展时本地磁盘会裂。若要上 S3/OSS，只需替换 `backend/src/middleware/upload.ts` 里的 storage 即可，其他接口保持不变。
 
+## 支付沙箱
+
+订单的 `待支付 → 已支付` 流转从"一键切状态"升级成了一个小型的模拟网关流：
+
+1. `POST /api/orders/:id/pay-intent { method }` 创建 `payments` 行（pending），返回 `{ paymentId, gatewayUrl, debugSignatures }`；`gatewayUrl` 形如 `/checkout?pid=...`
+2. 前端跳到 `/checkout`，展示订单摘要 + 三个出口按钮（成功 / 失败 / 取消）
+3. 用户选一个 → `POST /api/payments/callback { paymentId, outcome, amount, signature }`，signature 是 HMAC-SHA256(`${paymentId}|${outcome}|${amount}`, secret)
+4. 后端验签 + 验金额 + 验状态（拒重放），事务内同时更新 payment 和 order
+
+`debugSignatures` 是沙箱特供：真实网关里，签名由网关 server 算、客户端从不接触 secret。这里为了闭环演示直接随 intent 一起返回，代码注释里点名了这点。
+
+环境变量：`PAYMENT_SANDBOX_SECRET`（生产必填，未设置直接 throw）。
+
+`PUT /api/orders/:id/pay` 端点保留用于测试 / admin 场景，但 UI 不再走它。
+
 ## 数据库迁移
 
 使用 [Umzug](https://github.com/sequelize/umzug)（Sequelize 自家）管理增量 schema 变更，避免"改了 init.sql 但线上已经跑过"的尴尬。

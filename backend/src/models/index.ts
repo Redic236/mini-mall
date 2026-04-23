@@ -4,5 +4,7 @@ export { Address } from './Address';
 export { Order, ORDER_STATUS } from './Order';
 export type { OrderStatus } from './Order';
 export { OrderItem } from './OrderItem';
+export { Payment, PAYMENT_METHOD, PAYMENT_STATUS } from './Payment';
+export type { PaymentMethod, PaymentStatus } from './Payment';
 export { User } from './User';
 export { Review } from './Review';

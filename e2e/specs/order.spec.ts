@@ -49,7 +49,12 @@ test.describe('Order lifecycle', () => {
     const orderRow = page.locator('.ant-list-item').first();
     await expect(orderRow.getByText('待支付')).toBeVisible();
 
-    await orderRow.getByRole('button', { name: /^支\s*付$/ }).click();
+    // Sandbox pay flow: 去支付 dropdown → pick a method → /checkout → 支付成功.
+    await orderRow.getByRole('button', { name: /^去\s*支\s*付$/ }).click();
+    await page.getByRole('menuitem', { name: /支付宝（沙箱）/ }).click();
+    await expect(page).toHaveURL(/\/checkout\?pid=\d+$/);
+    await page.getByRole('button', { name: '模拟支付成功' }).click();
+    await expect(page).toHaveURL('/orders');
     await expect(orderRow.getByText('已支付')).toBeVisible();
 
     await orderRow.getByRole('button', { name: /发\s*货（管理）/ }).click();
