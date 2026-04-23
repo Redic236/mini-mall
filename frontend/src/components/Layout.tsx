@@ -1,5 +1,9 @@
-import { Layout as AntLayout, Menu } from 'antd';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Avatar, Button, Dropdown, Layout as AntLayout, Menu, Space } from 'antd';
+import type { MenuProps } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { logout } from '@/store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/store';
 
 const { Header, Content, Footer } = AntLayout;
 
@@ -12,9 +16,21 @@ const NAV_ITEMS = [
 
 export default function Layout(): JSX.Element {
   const location = useLocation();
-  const selectedKey = NAV_ITEMS.find((item) => location.pathname.startsWith(item.key) && item.key !== '/')
-    ? NAV_ITEMS.find((item) => location.pathname.startsWith(item.key) && item.key !== '/')!.key
-    : '/';
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((s) => s.auth);
+
+  const selectedKey =
+    NAV_ITEMS.find((item) => item.key !== '/' && location.pathname.startsWith(item.key))?.key ?? '/';
+
+  const handleLogout = (): void => {
+    dispatch(logout());
+    navigate('/login', { replace: true });
+  };
+
+  const userMenu: MenuProps['items'] = [
+    { key: 'logout', label: '退出登录', onClick: handleLogout },
+  ];
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
@@ -26,6 +42,23 @@ export default function Layout(): JSX.Element {
           items={NAV_ITEMS}
           style={{ flex: 1, borderBottom: 'none' }}
         />
+        {user ? (
+          <Dropdown menu={{ items: userMenu }} placement="bottomRight">
+            <Space style={{ cursor: 'pointer' }}>
+              <Avatar size="small" icon={<UserOutlined />} src={user.avatar ?? undefined} />
+              <span>{user.username}</span>
+            </Space>
+          </Dropdown>
+        ) : (
+          <Space>
+            <Button type="text" onClick={() => navigate('/login')}>
+              登录
+            </Button>
+            <Button type="primary" onClick={() => navigate('/register')}>
+              注册
+            </Button>
+          </Space>
+        )}
       </Header>
       <Content>
         <div className="app-container">

@@ -5,6 +5,18 @@ export interface ApiResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  avatar: string | null;
+}
+
+export interface AuthResult {
+  user: User;
+  token: string;
+}
+
 export interface Product {
   id: number;
   name: string;

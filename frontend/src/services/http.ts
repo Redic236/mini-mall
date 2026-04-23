@@ -1,11 +1,21 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 import type { ApiResponse } from '@/types';
+import { clearAuth, getStoredToken, notifyUnauthorized } from './tokenStore';
 
 export const http = axios.create({
   baseURL: '/api',
   timeout: 10_000,
   headers: { 'Content-Type': 'application/json' },
+});
+
+http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 http.interceptors.response.use(
@@ -17,6 +27,10 @@ http.interceptors.response.use(
     return res;
   },
   (err: AxiosError<ApiResponse<null>>) => {
+    if (err.response?.status === 401) {
+      clearAuth();
+      notifyUnauthorized();
+    }
     const msg = err.response?.data?.message ?? err.message ?? '网络错误';
     message.error(msg);
     return Promise.reject(err);

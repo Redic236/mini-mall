@@ -4,9 +4,11 @@ import productReducer from './slices/productSlice';
 import cartReducer from './slices/cartSlice';
 import orderReducer from './slices/orderSlice';
 import addressReducer from './slices/addressSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     products: productReducer,
     cart: cartReducer,
     orders: orderReducer,

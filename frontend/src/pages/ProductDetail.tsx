@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Descriptions, InputNumber, Spin, message } from 'antd';
 import { clearCurrent, loadProduct } from '@/store/slices/productSlice';
 import { addToCart } from '@/store/slices/cartSlice';
@@ -8,7 +8,10 @@ import { useAppDispatch, useAppSelector } from '@/store/store';
 export default function ProductDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { current } = useAppSelector((s) => s.products);
+  const { user } = useAppSelector((s) => s.auth);
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -21,8 +24,15 @@ export default function ProductDetail(): JSX.Element {
   if (!current) return <Spin />;
 
   const handleAdd = async (): Promise<void> => {
-    await dispatch(addToCart({ productId: current.id, quantity }));
-    message.success('已加入购物车');
+    if (!user) {
+      message.info('请先登录');
+      navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
+      return;
+    }
+    const action = await dispatch(addToCart({ productId: current.id, quantity }));
+    if (addToCart.fulfilled.match(action)) {
+      message.success('已加入购物车');
+    }
   };
 
   return (
@@ -34,6 +44,7 @@ export default function ProductDetail(): JSX.Element {
       <Descriptions bordered column={1} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="价格">¥ {Number(current.price).toFixed(2)}</Descriptions.Item>
         <Descriptions.Item label="库存">{current.stock}</Descriptions.Item>
+        <Descriptions.Item label="分类">{current.category}</Descriptions.Item>
         <Descriptions.Item label="描述">{current.description ?? '—'}</Descriptions.Item>
       </Descriptions>
       <InputNumber min={1} max={current.stock} value={quantity} onChange={(v) => setQuantity(Number(v ?? 1))} />
