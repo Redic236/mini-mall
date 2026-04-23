@@ -138,6 +138,10 @@ export default function OrderList(): JSX.Element {
                       <div>
                         总额：<strong style={{ color: '#1677ff' }}>{formatCNY(order.totalAmount)}</strong>
                       </div>
+                      <Typography.Text type="secondary" style={{ display: 'block' }}>
+                        收件：{order.receiverName} {order.receiverPhone} — {order.province}
+                        {order.city}{order.district} {order.detailAddress}
+                      </Typography.Text>
                       <Typography.Text type="secondary">
                         {order.items?.map((it) => `${it.product?.name ?? ''} × ${it.quantity}`).join(' / ')}
                       </Typography.Text>

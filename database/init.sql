@@ -94,14 +94,23 @@ CREATE TABLE IF NOT EXISTS `carts` (
 -- orders
 -- -------------------------------
 CREATE TABLE IF NOT EXISTS `orders` (
-  `id`          INT            NOT NULL AUTO_INCREMENT,
-  `orderNo`     VARCHAR(32)    NOT NULL,
-  `userId`      INT            NOT NULL,
-  `addressId`   INT            NOT NULL,
-  `totalAmount` DECIMAL(10, 2) NOT NULL,
-  `status`      VARCHAR(50)    NOT NULL DEFAULT '待支付',
-  `createdAt`   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updatedAt`   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `id`             INT            NOT NULL AUTO_INCREMENT,
+  `orderNo`        VARCHAR(32)    NOT NULL,
+  `userId`         INT            NOT NULL,
+  `addressId`      INT            NOT NULL,
+  -- Address snapshot: frozen copy of the shipping destination at order
+  -- creation time. Later edits or deletions of the source addresses row
+  -- must not rewrite historical orders.
+  `receiverName`   VARCHAR(50)    NOT NULL,
+  `receiverPhone`  VARCHAR(20)    NOT NULL,
+  `province`       VARCHAR(50)    NOT NULL,
+  `city`           VARCHAR(50)    NOT NULL,
+  `district`       VARCHAR(50)    NOT NULL,
+  `detailAddress`  VARCHAR(255)   NOT NULL,
+  `totalAmount`    DECIMAL(10, 2) NOT NULL,
+  `status`         VARCHAR(50)    NOT NULL DEFAULT '待支付',
+  `createdAt`      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_orders_order_no` (`orderNo`),
   KEY `idx_orders_user_id` (`userId`),

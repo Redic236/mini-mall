@@ -83,6 +83,15 @@ export interface Order {
   id: number;
   orderNo: string;
   addressId: number;
+  // Address snapshot frozen at placement time. Prefer these over the nested
+  // `address` object when rendering historical orders, since the referenced
+  // address row may have been edited since.
+  receiverName: string;
+  receiverPhone: string;
+  province: string;
+  city: string;
+  district: string;
+  detailAddress: string;
   totalAmount: number;
   status: OrderStatus;
   items?: OrderItem[];

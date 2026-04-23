@@ -18,6 +18,15 @@ interface OrderAttributes {
   orderNo: string;
   userId: number;
   addressId: number;
+  // Address snapshot captured at order creation. These freeze the shipping
+  // destination so later edits or deletions of the source address do not
+  // retroactively rewrite past orders.
+  receiverName: string;
+  receiverPhone: string;
+  province: string;
+  city: string;
+  district: string;
+  detailAddress: string;
   totalAmount: number;
   status: OrderStatus;
   createdAt?: Date;
@@ -31,6 +40,12 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> imple
   public orderNo!: string;
   public userId!: number;
   public addressId!: number;
+  public receiverName!: string;
+  public receiverPhone!: string;
+  public province!: string;
+  public city!: string;
+  public district!: string;
+  public detailAddress!: string;
   public totalAmount!: number;
   public status!: OrderStatus;
   public readonly createdAt!: Date;
@@ -43,6 +58,12 @@ Order.init(
     orderNo: { type: DataTypes.STRING(32), allowNull: false, unique: true },
     userId: { type: DataTypes.INTEGER, allowNull: false },
     addressId: { type: DataTypes.INTEGER, allowNull: false },
+    receiverName: { type: DataTypes.STRING(50), allowNull: false },
+    receiverPhone: { type: DataTypes.STRING(20), allowNull: false },
+    province: { type: DataTypes.STRING(50), allowNull: false },
+    city: { type: DataTypes.STRING(50), allowNull: false },
+    district: { type: DataTypes.STRING(50), allowNull: false },
+    detailAddress: { type: DataTypes.STRING(255), allowNull: false },
     totalAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: ORDER_STATUS.PENDING },
   },

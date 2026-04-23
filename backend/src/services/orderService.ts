@@ -90,6 +90,15 @@ export async function createOrderFromCart(
         orderNo,
         userId,
         addressId,
+        // Freeze the shipping destination at placement time — subsequent
+        // edits or deletions of the source address must not mutate what
+        // this order was shipped to.
+        receiverName: address.get('name') as string,
+        receiverPhone: address.get('phone') as string,
+        province: address.get('province') as string,
+        city: address.get('city') as string,
+        district: address.get('district') as string,
+        detailAddress: address.get('detail') as string,
         totalAmount: Number(total.toFixed(2)),
       },
       { transaction: t },

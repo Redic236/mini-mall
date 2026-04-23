@@ -97,10 +97,17 @@ describe('Products API', () => {
     it('reflects review aggregates in list and detail responses', async () => {
       const p = data.products[0];
       // Create a minimal order row so the FK on reviews is satisfied.
+      const addr = data.address!;
       const order = await Order.create({
         orderNo: 'TEST0000000000000000000001',
         userId: data.user!.get('id') as number,
-        addressId: data.address!.get('id') as number,
+        addressId: addr.get('id') as number,
+        receiverName: addr.get('name') as string,
+        receiverPhone: addr.get('phone') as string,
+        province: addr.get('province') as string,
+        city: addr.get('city') as string,
+        district: addr.get('district') as string,
+        detailAddress: addr.get('detail') as string,
         totalAmount: 0,
         status: ORDER_STATUS.DONE,
       });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { getApp } from '../helpers/app';
-import { seed, SeededData, Product } from '../helpers/db';
+import { seed, SeededData, Address, Product } from '../helpers/db';
 import { createUser, makeAuthed, type AuthedUser } from '../helpers/auth';
 
 async function addToCart(authHeader: [string, string], productId: number, quantity: number): Promise<number> {
@@ -39,6 +39,55 @@ describe('Orders API', () => {
       expect(Number(res.body.data.totalAmount)).toBe(118 + 199);
       expect(res.body.data.items).toHaveLength(2);
       expect(res.body.data.status).toBe('待支付');
+    });
+
+    it('snapshots the shipping address at order time', async () => {
+      const addr = data.address!;
+      const res = await request(getApp())
+        .post('/api/orders')
+        .set(...me.authHeader)
+        .send({ addressId: addr.get('id'), cartItemIds: [cartId1] });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.receiverName).toBe(addr.get('name'));
+      expect(res.body.data.receiverPhone).toBe(addr.get('phone'));
+      expect(res.body.data.province).toBe(addr.get('province'));
+      expect(res.body.data.city).toBe(addr.get('city'));
+      expect(res.body.data.district).toBe(addr.get('district'));
+      expect(res.body.data.detailAddress).toBe(addr.get('detail'));
+    });
+
+    it('snapshot survives subsequent edits of the source address', async () => {
+      const addr = data.address!;
+      const original = {
+        name: addr.get('name'),
+        phone: addr.get('phone'),
+        province: addr.get('province'),
+        city: addr.get('city'),
+        district: addr.get('district'),
+        detail: addr.get('detail'),
+      };
+
+      const created = await request(getApp())
+        .post('/api/orders')
+        .set(...me.authHeader)
+        .send({ addressId: addr.get('id'), cartItemIds: [cartId1] });
+      expect(created.status).toBe(201);
+
+      await Address.update(
+        { name: '李四', phone: '13900000099', province: '上海', city: '上海', district: '浦东', detail: 'B2 路' },
+        { where: { id: addr.get('id') } },
+      );
+
+      const refetch = await request(getApp())
+        .get(`/api/orders/${created.body.data.id}`)
+        .set(...me.authHeader);
+      expect(refetch.body.data.receiverName).toBe(original.name);
+      expect(refetch.body.data.receiverPhone).toBe(original.phone);
+      expect(refetch.body.data.province).toBe(original.province);
+      expect(refetch.body.data.city).toBe(original.city);
+      expect(refetch.body.data.district).toBe(original.district);
+      expect(refetch.body.data.detailAddress).toBe(original.detail);
     });
 
     it('snapshots the product price at order time', async () => {
