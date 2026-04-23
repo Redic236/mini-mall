@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { message } from 'antd';
-import type { ApiResponse } from '@/types';
+import type { ApiResponse, PagedResult } from '@/types';
 import { clearAuth, getStoredToken, notifyUnauthorized } from './tokenStore';
 
 export const http = axios.create({
@@ -43,4 +43,26 @@ export async function unwrap<T>(promise: Promise<AxiosResponse<ApiResponse<T>>>)
     throw new Error(res.data.message ?? 'Empty response');
   }
   return res.data.data;
+}
+
+/**
+ * Unwrap a response whose body is `{ data: T[], meta: { total, page, limit } }`
+ * into the frontend's `PagedResult<T>`. Falls back to page=1 + total=items.length
+ * when meta is missing so legacy endpoints keep working.
+ */
+export async function unwrapPaged<T>(
+  promise: Promise<AxiosResponse<ApiResponse<T[]>>>,
+): Promise<PagedResult<T>> {
+  const res = await promise;
+  const body = res.data;
+  if (!body.success || body.data === null) {
+    throw new Error(body.message ?? 'Empty response');
+  }
+  const meta = (body.meta ?? {}) as { total?: number; page?: number; limit?: number };
+  return {
+    items: body.data,
+    total: Number(meta.total ?? body.data.length),
+    page: Number(meta.page ?? 1),
+    limit: Number(meta.limit ?? body.data.length),
+  };
 }

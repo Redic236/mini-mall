@@ -9,17 +9,37 @@ import { audit } from '../utils/audit';
 import { logger } from '../utils/logger';
 import { validateCouponForOrder } from './couponService';
 
-export async function listOrders(userId: number, status?: OrderStatus): Promise<Order[]> {
+export interface ListOrdersFilter {
+  status?: OrderStatus;
+  page: number;
+  limit: number;
+}
+
+export interface PagedOrders {
+  items: Order[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function listOrders(userId: number, filter: ListOrdersFilter): Promise<PagedOrders> {
   const where: Record<string, unknown> = { userId };
-  if (status) where.status = status;
-  return Order.findAll({
+  if (filter.status) where.status = filter.status;
+  const offset = (filter.page - 1) * filter.limit;
+  const { rows, count } = await Order.findAndCountAll({
     where,
     include: [
       { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
       { model: Address, as: 'address' },
     ],
     order: [['id', 'DESC']],
+    offset,
+    limit: filter.limit,
+    // `distinct: true` so the row count is deduped when joining order_items;
+    // without it, N line items inflate the total to orders × lines.
+    distinct: true,
   });
+  return { items: rows, total: count, page: filter.page, limit: filter.limit };
 }
 
 async function findOwnedOrder(

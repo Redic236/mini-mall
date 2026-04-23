@@ -67,6 +67,8 @@ export const productListQuerySchema = z
     minPrice: z.coerce.number().nonnegative().optional(),
     maxPrice: z.coerce.number().nonnegative().optional(),
     sort: z.enum(['default', 'priceAsc', 'priceDesc', 'sales']).default('default'),
+    page: z.coerce.number().int().positive().max(1000).default(1),
+    limit: z.coerce.number().int().positive().max(50).default(20),
   })
   .refine(
     (v) => v.minPrice === undefined || v.maxPrice === undefined || v.minPrice <= v.maxPrice,
@@ -128,6 +130,14 @@ export const couponBodySchema = z
 export const orderStatusQuerySchema = z
   .enum(['待支付', '已支付', '已发货', '已完成', '已取消'])
   .optional();
+
+// User-facing order list. Hard cap on limit prevents an attacker or runaway
+// client from requesting the whole table in one shot.
+export const userOrderListQuerySchema = z.object({
+  status: z.enum(['待支付', '已支付', '已发货', '已完成', '已取消']).optional(),
+  page: z.coerce.number().int().positive().max(1000).default(1),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+});
 
 // Shipment events
 export const shipmentEventBodySchema = z.object({

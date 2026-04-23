@@ -11,6 +11,15 @@ export interface ListProductsFilter {
   minPrice?: number;
   maxPrice?: number;
   sort?: ProductSort;
+  page?: number;
+  limit?: number;
+}
+
+export interface PagedProducts {
+  items: Product[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface CategorySummary {
@@ -48,7 +57,7 @@ const ORDER_BY: Record<ProductSort, Order> = {
   sales: [['salesCount', 'DESC'], ['id', 'ASC']],
 };
 
-export async function listProducts(filter: ListProductsFilter = {}): Promise<Product[]> {
+export async function listProducts(filter: ListProductsFilter = {}): Promise<PagedProducts> {
   const where: Record<string, unknown> = {};
   if (filter.category) {
     where.category = filter.category;
@@ -63,11 +72,20 @@ export async function listProducts(filter: ListProductsFilter = {}): Promise<Pro
   const price = priceWhere(filter);
   if (price) where.price = price;
 
-  return Product.findAll({
+  const page = filter.page ?? 1;
+  const limit = filter.limit ?? 20;
+  const offset = (page - 1) * limit;
+
+  // `count` ignores the review-aggregate subqueries (they're in attributes,
+  // not where), so Sequelize runs a clean COUNT(*) on the where clause alone.
+  const { rows, count } = await Product.findAndCountAll({
     where,
     attributes: { include: [AVERAGE_RATING_ATTR, REVIEW_COUNT_ATTR] },
     order: ORDER_BY[filter.sort ?? 'default'],
+    offset,
+    limit,
   });
+  return { items: rows, total: count, page, limit };
 }
 
 export async function getProductById(id: number): Promise<Product> {

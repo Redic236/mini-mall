@@ -1,9 +1,18 @@
-import { http, unwrap } from './http';
-import type { ApiResponse, Order, OrderStatus } from '@/types';
+import { http, unwrap, unwrapPaged } from './http';
+import type { ApiResponse, Order, OrderStatus, PagedResult } from '@/types';
 
-export async function fetchOrders(status?: OrderStatus): Promise<Order[]> {
-  const params = status ? { status } : undefined;
-  return unwrap<Order[]>(http.get<ApiResponse<Order[]>>('/orders', { params }));
+export interface OrderListQuery {
+  status?: OrderStatus;
+  page?: number;
+  limit?: number;
+}
+
+export async function fetchOrders(query: OrderListQuery = {}): Promise<PagedResult<Order>> {
+  const params: Record<string, string> = {};
+  if (query.status) params.status = query.status;
+  if (query.page) params.page = String(query.page);
+  if (query.limit) params.limit = String(query.limit);
+  return unwrapPaged<Order>(http.get<ApiResponse<Order[]>>('/orders', { params }));
 }
 
 export async function fetchOrder(id: number): Promise<Order> {

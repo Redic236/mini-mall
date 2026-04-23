@@ -5,6 +5,13 @@ export interface ApiResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+export interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export type UserRole = 'user' | 'admin';
 
 export interface User {
@@ -48,6 +55,8 @@ export interface ProductFilter {
   minPrice?: number;
   maxPrice?: number;
   sort?: ProductSort;
+  page?: number;
+  limit?: number;
 }
 
 export interface CartItem {

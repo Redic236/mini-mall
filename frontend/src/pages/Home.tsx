@@ -6,6 +6,7 @@ import {
   Empty,
   Input,
   InputNumber,
+  Pagination,
   Rate,
   Row,
   Segmented,
@@ -44,9 +45,11 @@ function parseOptionalNumber(raw: string | null): number | undefined {
   return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
+const DEFAULT_PAGE_SIZE = 20;
+
 export default function Home(): JSX.Element {
   const dispatch = useAppDispatch();
-  const { list, loading, categories } = useAppSelector((s) => s.products);
+  const { list, loading, categories, page, limit, total } = useAppSelector((s) => s.products);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const keyword = searchParams.get('q') ?? '';
@@ -54,6 +57,7 @@ export default function Home(): JSX.Element {
   const minPrice = parseOptionalNumber(searchParams.get('min'));
   const maxPrice = parseOptionalNumber(searchParams.get('max'));
   const sort = (searchParams.get('sort') as ProductSort | null) ?? 'default';
+  const pageParam = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
 
   const debouncedKeyword = useDebouncedValue(keyword, 300);
   const debouncedMin = useDebouncedValue(minPrice, 400);
@@ -71,9 +75,11 @@ export default function Home(): JSX.Element {
         minPrice: debouncedMin,
         maxPrice: debouncedMax,
         sort,
+        page: pageParam,
+        limit: DEFAULT_PAGE_SIZE,
       }),
     );
-  }, [dispatch, debouncedKeyword, category, debouncedMin, debouncedMax, sort]);
+  }, [dispatch, debouncedKeyword, category, debouncedMin, debouncedMax, sort, pageParam]);
 
   const categoryOptions = useMemo(
     () => [
@@ -90,7 +96,18 @@ export default function Home(): JSX.Element {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    // Changing any filter resets pagination to page 1 — paginating stale
+    // results on top of a new filter is confusing UX.
+    if (key !== 'page') next.delete('page');
     setSearchParams(next, { replace: true });
+  };
+
+  const handlePageChange = (nextPage: number): void => {
+    const next = new URLSearchParams(searchParams);
+    if (nextPage <= 1) next.delete('page');
+    else next.set('page', String(nextPage));
+    setSearchParams(next, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const filtersActive =
@@ -209,6 +226,7 @@ export default function Home(): JSX.Element {
           {filtersActive && <Button onClick={clearFilters}>清空筛选</Button>}
         </Empty>
       ) : (
+        <>
         <Row gutter={[16, 16]}>
           {list.map((product, index) => {
             const rating = Number(product.averageRating ?? 0);
@@ -288,6 +306,18 @@ export default function Home(): JSX.Element {
             );
           })}
         </Row>
+        {total > limit && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={total}
+              showSizeChanger={false}
+              onChange={handlePageChange}
+            />
+          </div>
+        )}
+        </>
       )}
     </div>
   );

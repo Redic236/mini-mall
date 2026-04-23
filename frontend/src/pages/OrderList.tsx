@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Collapse, Dropdown, Empty, List, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
+import { Button, Collapse, Dropdown, Empty, List, Pagination, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   cancelOrderThunk,
   confirmOrderThunk,
   loadOrders,
+  setPage,
   setStatusFilter,
 } from '@/store/slices/orderSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
@@ -28,15 +29,19 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 export default function OrderList(): JSX.Element {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { list, loading, statusFilter } = useAppSelector((s) => s.orders);
+  const { list, loading, statusFilter, page, limit, total } = useAppSelector((s) => s.orders);
   const [payingOrderId, setPayingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
-    void dispatch(loadOrders(statusFilter ?? undefined));
-  }, [dispatch, statusFilter]);
+    void dispatch(loadOrders({ status: statusFilter ?? undefined, page, limit }));
+  }, [dispatch, statusFilter, page, limit]);
 
   const handleFilterChange = (value: OrderStatus | null): void => {
     dispatch(setStatusFilter(value));
+  };
+
+  const handlePageChange = (next: number): void => {
+    dispatch(setPage(next));
   };
 
   const startPayment = async (
@@ -139,6 +144,7 @@ export default function OrderList(): JSX.Element {
           </Empty>
         </div>
       ) : (
+        <>
         <List
           loading={loading}
           dataSource={list}
@@ -192,6 +198,18 @@ export default function OrderList(): JSX.Element {
             );
           }}
         />
+        {total > limit && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={total}
+              showSizeChanger={false}
+              onChange={handlePageChange}
+            />
+          </div>
+        )}
+        </>
       )}
     </div>
   );

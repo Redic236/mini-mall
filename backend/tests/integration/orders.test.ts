@@ -229,6 +229,36 @@ describe('Orders API', () => {
       const res = await request(getApp()).get('/api/orders?status=nope').set(...me.authHeader);
       expect(res.status).toBe(400);
     });
+
+    it('honours page and limit params and returns meta', async () => {
+      // Create 3 orders for the caller.
+      for (let i = 0; i < 3; i += 1) {
+        const ci = await addToCart(me.authHeader, data.products[2].id, 1);
+        await request(getApp())
+          .post('/api/orders')
+          .set(...me.authHeader)
+          .send({ addressId: data.address!.get('id'), cartItemIds: [ci] });
+      }
+
+      const page1 = await request(getApp())
+        .get('/api/orders?page=1&limit=2')
+        .set(...me.authHeader);
+      expect(page1.body.data).toHaveLength(2);
+      expect(page1.body.meta).toEqual({ total: 3, page: 1, limit: 2 });
+
+      const page2 = await request(getApp())
+        .get('/api/orders?page=2&limit=2')
+        .set(...me.authHeader);
+      expect(page2.body.data).toHaveLength(1);
+      expect(page2.body.meta.total).toBe(3);
+    });
+
+    it('rejects limit > 50', async () => {
+      const res = await request(getApp())
+        .get('/api/orders?limit=100')
+        .set(...me.authHeader);
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('GET /api/orders/:id', () => {

@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
   cancelOrder,
   confirmOrder,
@@ -6,21 +6,34 @@ import {
   fetchOrder,
   fetchOrders,
   payOrder,
+  type OrderListQuery,
 } from '@/services/order';
-import type { Order, OrderStatus } from '@/types';
+import type { Order, OrderStatus, PagedResult } from '@/types';
 
 interface OrderState {
   list: Order[];
   current: Order | null;
   statusFilter: OrderStatus | null;
+  page: number;
+  limit: number;
+  total: number;
   loading: boolean;
 }
 
-const initialState: OrderState = { list: [], current: null, statusFilter: null, loading: false };
+const DEFAULT_LIMIT = 20;
 
-export const loadOrders = createAsyncThunk(
-  'orders/load',
-  async (status: OrderStatus | undefined) => fetchOrders(status),
+const initialState: OrderState = {
+  list: [],
+  current: null,
+  statusFilter: null,
+  page: 1,
+  limit: DEFAULT_LIMIT,
+  total: 0,
+  loading: false,
+};
+
+export const loadOrders = createAsyncThunk('orders/load', async (query: OrderListQuery = {}) =>
+  fetchOrders(query),
 );
 
 export const loadOrder = createAsyncThunk('orders/loadOne', async (id: number) => fetchOrder(id));
@@ -39,8 +52,14 @@ function makeTransitionThunk(
     `orders/${name}`,
     async (id, { dispatch, getState }) => {
       await action(id);
-      const state = getState();
-      await dispatch(loadOrders(state.orders.statusFilter ?? undefined));
+      const state = getState().orders;
+      await dispatch(
+        loadOrders({
+          status: state.statusFilter ?? undefined,
+          page: state.page,
+          limit: state.limit,
+        }),
+      );
     },
   );
 }
@@ -56,6 +75,11 @@ const slice = createSlice({
   reducers: {
     setStatusFilter(state, action: { payload: OrderStatus | null }) {
       state.statusFilter = action.payload;
+      // Filter change resets to first page — paginating stale results is confusing.
+      state.page = 1;
+    },
+    setPage(state, action: { payload: number }) {
+      state.page = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -63,9 +87,12 @@ const slice = createSlice({
       .addCase(loadOrders.pending, (state) => {
         state.loading = true;
       })
-      .addCase(loadOrders.fulfilled, (state, action) => {
+      .addCase(loadOrders.fulfilled, (state, action: PayloadAction<PagedResult<Order>>) => {
         state.loading = false;
-        state.list = action.payload;
+        state.list = action.payload.items;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
       })
       .addCase(loadOrders.rejected, (state) => {
         state.loading = false;
@@ -76,5 +103,5 @@ const slice = createSlice({
   },
 });
 
-export const { setStatusFilter } = slice.actions;
+export const { setStatusFilter, setPage } = slice.actions;
 export default slice.reducer;

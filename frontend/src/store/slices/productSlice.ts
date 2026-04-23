@@ -1,19 +1,27 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchCategories, fetchProduct, fetchProducts } from '@/services/product';
-import type { CategorySummary, Product, ProductFilter } from '@/types';
+import type { CategorySummary, PagedResult, Product, ProductFilter } from '@/types';
 
 interface ProductState {
   list: Product[];
   current: Product | null;
   categories: CategorySummary[];
+  page: number;
+  limit: number;
+  total: number;
   loading: boolean;
   error: string | null;
 }
+
+const DEFAULT_LIMIT = 20;
 
 const initialState: ProductState = {
   list: [],
   current: null,
   categories: [],
+  page: 1,
+  limit: DEFAULT_LIMIT,
+  total: 0,
   loading: false,
   error: null,
 };
@@ -23,9 +31,13 @@ export const loadProducts = createAsyncThunk(
   async (filter: ProductFilter | undefined) => fetchProducts(filter ?? {}),
 );
 
-export const loadProduct = createAsyncThunk('products/loadOne', async (id: number) => fetchProduct(id));
+export const loadProduct = createAsyncThunk('products/loadOne', async (id: number) =>
+  fetchProduct(id),
+);
 
-export const loadCategories = createAsyncThunk('products/loadCategories', async () => fetchCategories());
+export const loadCategories = createAsyncThunk('products/loadCategories', async () =>
+  fetchCategories(),
+);
 
 const slice = createSlice({
   name: 'products',
@@ -34,6 +46,9 @@ const slice = createSlice({
     clearCurrent(state) {
       state.current = null;
     },
+    setPage(state, action: { payload: number }) {
+      state.page = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -41,9 +56,12 @@ const slice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(loadProducts.fulfilled, (state, action: PayloadAction<Product[]>) => {
+      .addCase(loadProducts.fulfilled, (state, action: PayloadAction<PagedResult<Product>>) => {
         state.loading = false;
-        state.list = action.payload;
+        state.list = action.payload.items;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
       })
       .addCase(loadProducts.rejected, (state, action) => {
         state.loading = false;
@@ -58,5 +76,5 @@ const slice = createSlice({
   },
 });
 
-export const { clearCurrent } = slice.actions;
+export const { clearCurrent, setPage } = slice.actions;
 export default slice.reducer;

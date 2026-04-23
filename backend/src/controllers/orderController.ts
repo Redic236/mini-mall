@@ -5,16 +5,20 @@ import { ok } from '../utils/apiResponse';
 import {
   createOrderBodySchema,
   idSchema,
-  orderStatusQuerySchema,
   parseOrThrow,
+  userOrderListQuerySchema,
 } from '../utils/validate';
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const statusRaw = typeof req.query.status === 'string' ? req.query.status : undefined;
-    const status = parseOrThrow(orderStatusQuerySchema, statusRaw, 'status');
-    const orders = await orderService.listOrders(getUserId(req), status);
-    res.json(ok(orders));
+    const filter = parseOrThrow(userOrderListQuerySchema, req.query);
+    const result = await orderService.listOrders(getUserId(req), filter);
+    res.json({
+      success: true,
+      data: result.items,
+      message: null,
+      meta: { total: result.total, page: result.page, limit: result.limit },
+    });
   } catch (err) {
     next(err);
   }

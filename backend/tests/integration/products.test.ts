@@ -18,6 +18,26 @@ describe('Products API', () => {
       expect(res.body.data).toHaveLength(3);
     });
 
+    it('returns a pagination meta envelope', async () => {
+      const res = await request(getApp()).get('/api/products');
+      expect(res.body.meta).toEqual({ total: 3, page: 1, limit: 20 });
+    });
+
+    it('honours page and limit params', async () => {
+      const first = await request(getApp()).get('/api/products?sort=priceAsc&page=1&limit=2');
+      expect(first.body.data).toHaveLength(2);
+      expect(first.body.meta).toEqual({ total: 3, page: 1, limit: 2 });
+
+      const second = await request(getApp()).get('/api/products?sort=priceAsc&page=2&limit=2');
+      expect(second.body.data).toHaveLength(1);
+      expect(second.body.meta).toEqual({ total: 3, page: 2, limit: 2 });
+    });
+
+    it('rejects limit > 50', async () => {
+      const res = await request(getApp()).get('/api/products?limit=100');
+      expect(res.status).toBe(400);
+    });
+
     it('filters by category', async () => {
       const res = await request(getApp()).get('/api/products?category=footwear');
       expect(res.status).toBe(200);

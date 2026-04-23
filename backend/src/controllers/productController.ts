@@ -17,9 +17,16 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
       minPrice: str('minPrice'),
       maxPrice: str('maxPrice'),
       sort: str('sort'),
+      page: str('page'),
+      limit: str('limit'),
     });
-    const products = await productService.listProducts(filter);
-    res.json(ok(products));
+    const result = await productService.listProducts(filter);
+    res.json({
+      success: true,
+      data: result.items,
+      message: null,
+      meta: { total: result.total, page: result.page, limit: result.limit },
+    });
   } catch (err) {
     next(err);
   }

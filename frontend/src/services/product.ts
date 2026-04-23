@@ -1,14 +1,16 @@
-import { http, unwrap } from './http';
-import type { ApiResponse, CategorySummary, Product, ProductFilter } from '@/types';
+import { http, unwrap, unwrapPaged } from './http';
+import type { ApiResponse, CategorySummary, PagedResult, Product, ProductFilter } from '@/types';
 
-export async function fetchProducts(filter: ProductFilter = {}): Promise<Product[]> {
+export async function fetchProducts(filter: ProductFilter = {}): Promise<PagedResult<Product>> {
   const params: Record<string, string> = {};
   if (filter.keyword) params.keyword = filter.keyword;
   if (filter.category) params.category = filter.category;
   if (filter.minPrice !== undefined) params.minPrice = String(filter.minPrice);
   if (filter.maxPrice !== undefined) params.maxPrice = String(filter.maxPrice);
   if (filter.sort && filter.sort !== 'default') params.sort = filter.sort;
-  return unwrap<Product[]>(http.get<ApiResponse<Product[]>>('/products', { params }));
+  if (filter.page) params.page = String(filter.page);
+  if (filter.limit) params.limit = String(filter.limit);
+  return unwrapPaged<Product>(http.get<ApiResponse<Product[]>>('/products', { params }));
 }
 
 export async function fetchProduct(id: number): Promise<Product> {
