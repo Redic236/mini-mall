@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import helmet from 'helmet';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiRateLimiter, authRateLimiter, writeRateLimiter } from './middleware/rateLimit';
@@ -9,6 +10,19 @@ export function createApp(): Application {
 
   // Needed for correct client IP when behind a proxy (nginx, etc.)
   app.set('trust proxy', 1);
+
+  // Security headers. Registered first so headers apply to every response,
+  // including rate-limit rejections and error paths. `crossOriginResourcePolicy`
+  // is relaxed to 'cross-origin' because this API is consumed by a browser
+  // frontend that may live on a different origin (Vite dev, separate nginx).
+  // `contentSecurityPolicy` is disabled — CSP governs how HTML documents load
+  // subresources, which is irrelevant for a JSON-only API.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   app.use(corsMiddleware);
   app.use(express.json({ limit: '1mb' }));
