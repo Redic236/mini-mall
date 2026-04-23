@@ -126,8 +126,13 @@ export async function handleGatewayCallback(input: CallbackInput): Promise<Callb
       throw new HttpError(409, '该支付已被处理，请勿重复回调');
     }
 
-    const expectedAmount = Number(payment.get('amount'));
-    if (Math.abs(expectedAmount - input.amount) > 0.001) {
+    // DECIMAL(10,2) on both sides — compare by cents to dodge any
+    // floating-point slack. The previous 0.001 tolerance was looser than the
+    // schema's own precision, so it was only ever protecting against imagined
+    // rounding that can't actually happen on these columns.
+    const expectedCents = Math.round(Number(payment.get('amount')) * 100);
+    const inputCents = Math.round(input.amount * 100);
+    if (expectedCents !== inputCents) {
       throw new HttpError(400, '支付金额不匹配');
     }
 

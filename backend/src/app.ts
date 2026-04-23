@@ -41,8 +41,12 @@ export function createApp(): Application {
   // Tight limiter on auth endpoints (brute-force mitigation)
   app.use('/api/auth', authRateLimiter);
 
-  // Stricter limiter on write paths (orders + address mutations)
+  // Stricter limiter on write paths (orders + address mutations + payments).
+  // Payments sit here because the sandbox callback is the HMAC-verification
+  // surface — without a tight limit, an attacker could brute-force signatures
+  // within the generous global 300/15min budget.
   app.use('/api/orders', writeRateLimiter);
+  app.use('/api/payments', writeRateLimiter);
   app.use('/api/addresses', (req, res, next) => {
     if (req.method === 'GET') return next();
     return writeRateLimiter(req, res, next);
