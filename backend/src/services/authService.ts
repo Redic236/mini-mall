@@ -49,9 +49,13 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
     },
   });
   if (conflict) {
+    // Return a generic message so the endpoint can't be used as a user
+    // enumeration oracle (probing which emails/usernames already exist).
+    // The actual conflicting field is logged server-side for support.
     const plain = conflict.get({ plain: true }) as { email: string; username: string };
-    const field = plain.email === input.email ? '邮箱' : '用户名';
-    throw new HttpError(409, `${field}已被注册`);
+    const field = plain.email === input.email ? 'email' : 'username';
+    logger.info('register.conflict', { field });
+    throw new HttpError(409, '邮箱或用户名已被占用');
   }
 
   const passwordHash = await hashPassword(input.password);
