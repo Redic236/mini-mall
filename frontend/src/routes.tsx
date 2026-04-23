@@ -1,15 +1,19 @@
+import { lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import RequireAuth from '@/components/RequireAuth';
-import Home from '@/pages/Home';
-import ProductDetail from '@/pages/ProductDetail';
-import Cart from '@/pages/Cart';
-import OrderConfirm from '@/pages/OrderConfirm';
-import OrderList from '@/pages/OrderList';
-import AddressManagement from '@/pages/AddressManagement';
-import MyReviews from '@/pages/MyReviews';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
+
+// Route-level code splitting: each page is emitted as its own chunk and
+// fetched on demand. Layout's <Suspense> supplies the fallback.
+const Home = lazy(() => import('@/pages/Home'));
+const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
+const Cart = lazy(() => import('@/pages/Cart'));
+const OrderConfirm = lazy(() => import('@/pages/OrderConfirm'));
+const OrderList = lazy(() => import('@/pages/OrderList'));
+const AddressManagement = lazy(() => import('@/pages/AddressManagement'));
+const MyReviews = lazy(() => import('@/pages/MyReviews'));
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
 
 export const router = createBrowserRouter([
   {

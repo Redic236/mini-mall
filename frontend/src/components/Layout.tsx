@@ -1,4 +1,5 @@
-import { Avatar, Button, Dropdown, Layout as AntLayout, Menu, Space } from 'antd';
+import { Suspense } from 'react';
+import { Avatar, Button, Dropdown, Layout as AntLayout, Menu, Space, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -75,7 +76,15 @@ export default function Layout(): JSX.Element {
       </Header>
       <Content>
         <div className="app-container">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+                <Spin />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </Content>
       <Footer style={{ textAlign: 'center' }}>Mini Mall © {new Date().getFullYear()}</Footer>
