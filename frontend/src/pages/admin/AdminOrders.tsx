@@ -71,9 +71,15 @@ export default function AdminOrders(): JSX.Element {
   }, [load]);
 
   const handleShip = async (id: number): Promise<void> => {
-    await shipAdminOrder(id);
-    void message.success('已发货');
-    await load();
+    try {
+      await shipAdminOrder(id);
+      void message.success('已发货');
+    } finally {
+      // Refresh either way: on success to reflect the new status; on failure
+      // to make sure we're not showing stale state (e.g. server accepted but
+      // the response errored en route).
+      await load();
+    }
   };
 
   const openShipmentModal = async (orderId: number): Promise<void> => {
@@ -91,19 +97,35 @@ export default function AdminOrders(): JSX.Element {
     setShipmentModal({ orderId: null, events: [], loading: false });
   };
 
+  const [addingEvent, setAddingEvent] = useState(false);
+
   const handleAddShipmentEvent = async (): Promise<void> => {
     if (shipmentModal.orderId === null) return;
-    const values = await shipmentForm.validateFields();
-    await addAdminShipmentEvent(shipmentModal.orderId, {
-      status: values.status,
-      location: values.location?.trim() || null,
-      note: values.note?.trim() || null,
-    });
-    void message.success('已添加');
-    // Reload events in-place.
-    const events = await fetchAdminShipmentEvents(shipmentModal.orderId);
-    setShipmentModal((prev) => ({ ...prev, events }));
-    shipmentForm.resetFields();
+    let values: ShipmentEventInput;
+    try {
+      values = await shipmentForm.validateFields();
+    } catch {
+      // AntD already renders the field-level error messages inline; just
+      // bail out — no toast needed.
+      return;
+    }
+    setAddingEvent(true);
+    try {
+      await addAdminShipmentEvent(shipmentModal.orderId, {
+        status: values.status,
+        location: values.location?.trim() || null,
+        note: values.note?.trim() || null,
+      });
+      void message.success('已添加');
+      const events = await fetchAdminShipmentEvents(shipmentModal.orderId);
+      setShipmentModal((prev) => ({ ...prev, events }));
+      shipmentForm.resetFields();
+    } catch {
+      // http interceptor surfaces the server-side error toast; we just
+      // keep the form values so the admin can retry without retyping.
+    } finally {
+      setAddingEvent(false);
+    }
   };
 
   const columns: ColumnsType<Order> = [
@@ -255,7 +277,11 @@ export default function AdminOrders(): JSX.Element {
           <Form.Item name="note" label="备注" rules={[{ max: 255 }]}>
             <Input placeholder="例如 已发往杭州" />
           </Form.Item>
-          <Button type="primary" onClick={() => void handleAddShipmentEvent()}>
+          <Button
+            type="primary"
+            loading={addingEvent}
+            onClick={() => void handleAddShipmentEvent()}
+          >
             添加
           </Button>
         </Form>
