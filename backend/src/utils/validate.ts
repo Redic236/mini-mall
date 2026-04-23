@@ -19,6 +19,23 @@ export const idSchema = z.coerce.number().int().positive();
 export const positiveIntSchema = z.number().int().positive();
 export const nonNegativeNumberSchema = z.number().nonnegative();
 
+// Auth
+export const registerBodySchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3, '用户名至少 3 个字符')
+    .max(50, '用户名不超过 50 个字符')
+    .regex(/^[\w一-龥]+$/, '用户名只能包含字母、数字、下划线或中文'),
+  email: z.string().trim().email('邮箱格式不正确').max(255),
+  password: z.string().min(6, '密码至少 6 位').max(128, '密码不超过 128 位'),
+});
+
+export const loginBodySchema = z.object({
+  email: z.string().trim().email('邮箱格式不正确'),
+  password: z.string().min(1, '密码不能为空'),
+});
+
 // Products
 export const productListQuerySchema = z.object({
   keyword: z.string().trim().min(1).max(100).optional(),

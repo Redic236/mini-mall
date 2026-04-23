@@ -19,6 +19,7 @@ export default defineConfig({
       NODE_ENV: 'test',
       DB_NAME: 'mini_mall_test',
       LOG_LEVEL: 'error',
+      JWT_SECRET: 'test-secret-do-not-use-in-prod',
     },
     coverage: {
       provider: 'v8',

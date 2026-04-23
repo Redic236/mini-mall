@@ -1,10 +1,10 @@
 import { sequelize } from '../../src/config/database';
-import { Address, Cart, Order, OrderItem, Product } from '../../src/models';
+import { Address, Cart, Order, OrderItem, Product, User } from '../../src/models';
+import { hashPassword } from '../../src/utils/password';
 
 export async function truncateAll(): Promise<void> {
-  // DELETE in FK-safe order (children before parents). Auto-increment ids are
-  // not reset — tests reference ids via API response payloads, not literals.
-  for (const table of ['order_items', 'orders', 'carts', 'addresses', 'products']) {
+  // DELETE in FK-safe order (children before parents).
+  for (const table of ['order_items', 'orders', 'carts', 'addresses', 'products', 'users']) {
     await sequelize.query(`DELETE FROM \`${table}\``);
   }
 }
@@ -12,15 +12,27 @@ export async function truncateAll(): Promise<void> {
 export interface SeedOptions {
   products?: boolean;
   address?: boolean;
+  user?: boolean;
 }
 
 export interface SeededData {
+  user: User | null;
   products: Product[];
   address: Address | null;
 }
 
-export async function seed(options: SeedOptions = { products: true, address: true }): Promise<SeededData> {
+export async function seed(options: SeedOptions = { products: true, address: true, user: true }): Promise<SeededData> {
   await truncateAll();
+
+  const userEnabled = options.user ?? true;
+  const user = userEnabled
+    ? await User.create({
+        username: 'tester',
+        email: 'tester@example.com',
+        passwordHash: await hashPassword('password123'),
+        avatar: null,
+      })
+    : null;
 
   const products = options.products
     ? await Product.bulkCreate([
@@ -30,19 +42,21 @@ export async function seed(options: SeedOptions = { products: true, address: tru
       ])
     : [];
 
-  const address = options.address
-    ? await Address.create({
-        name: '张三',
-        phone: '13800000001',
-        province: '北京',
-        city: '北京',
-        district: '朝阳',
-        detail: 'A1 路',
-        isDefault: true,
-      })
-    : null;
+  const address =
+    options.address && user
+      ? await Address.create({
+          userId: user.get('id') as number,
+          name: '张三',
+          phone: '13800000001',
+          province: '北京',
+          city: '北京',
+          district: '朝阳',
+          detail: 'A1 路',
+          isDefault: true,
+        })
+      : null;
 
-  return { products, address };
+  return { user, products, address };
 }
 
-export { Address, Cart, Order, OrderItem, Product };
+export { Address, Cart, Order, OrderItem, Product, User };

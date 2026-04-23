@@ -8,6 +8,22 @@ CREATE DATABASE IF NOT EXISTS `mini_mall`
 USE `mini_mall`;
 
 -- -------------------------------
+-- users
+-- -------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+  `id`           INT           NOT NULL AUTO_INCREMENT,
+  `username`     VARCHAR(50)   NOT NULL,
+  `email`        VARCHAR(255)  NOT NULL,
+  `passwordHash` VARCHAR(255)  NOT NULL,
+  `avatar`       VARCHAR(512)  NULL,
+  `createdAt`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_users_email` (`email`),
+  UNIQUE KEY `idx_users_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------
 -- products
 -- -------------------------------
 CREATE TABLE IF NOT EXISTS `products` (
@@ -31,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `products` (
 -- -------------------------------
 CREATE TABLE IF NOT EXISTS `addresses` (
   `id`        INT           NOT NULL AUTO_INCREMENT,
+  `userId`    INT           NOT NULL,
   `name`      VARCHAR(50)   NOT NULL,
   `phone`     VARCHAR(20)   NOT NULL,
   `province`  VARCHAR(50)   NOT NULL,
@@ -41,7 +58,10 @@ CREATE TABLE IF NOT EXISTS `addresses` (
   `createdAt` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_addresses_is_default` (`isDefault`)
+  KEY `idx_addresses_user_id` (`userId`),
+  KEY `idx_addresses_is_default` (`isDefault`),
+  CONSTRAINT `fk_addresses_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------
@@ -49,13 +69,17 @@ CREATE TABLE IF NOT EXISTS `addresses` (
 -- -------------------------------
 CREATE TABLE IF NOT EXISTS `carts` (
   `id`        INT       NOT NULL AUTO_INCREMENT,
+  `userId`    INT       NOT NULL,
   `productId` INT       NOT NULL,
   `quantity`  INT       NOT NULL DEFAULT 1,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_carts_user_product` (`userId`, `productId`),
   KEY `idx_carts_product_id` (`productId`),
   CONSTRAINT `chk_carts_quantity_positive` CHECK (`quantity` > 0),
+  CONSTRAINT `fk_carts_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_carts_product`
     FOREIGN KEY (`productId`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -66,6 +90,7 @@ CREATE TABLE IF NOT EXISTS `carts` (
 CREATE TABLE IF NOT EXISTS `orders` (
   `id`          INT            NOT NULL AUTO_INCREMENT,
   `orderNo`     VARCHAR(32)    NOT NULL,
+  `userId`      INT            NOT NULL,
   `addressId`   INT            NOT NULL,
   `totalAmount` DECIMAL(10, 2) NOT NULL,
   `status`      VARCHAR(50)    NOT NULL DEFAULT '待支付',
@@ -73,9 +98,12 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `updatedAt`   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_orders_order_no` (`orderNo`),
+  KEY `idx_orders_user_id` (`userId`),
   KEY `idx_orders_address_id` (`addressId`),
   KEY `idx_orders_status` (`status`),
   CONSTRAINT `chk_orders_total_nonneg` CHECK (`totalAmount` >= 0),
+  CONSTRAINT `fk_orders_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_orders_address`
     FOREIGN KEY (`addressId`) REFERENCES `addresses` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

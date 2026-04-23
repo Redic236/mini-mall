@@ -1,4 +1,5 @@
 import { Op } from 'sequelize';
+import type { Transaction } from 'sequelize';
 import { Address, Cart, Order, OrderItem, ORDER_STATUS, Product } from '../models';
 import type { OrderStatus } from '../models';
 import { sequelize } from '../config/database';
@@ -6,9 +7,11 @@ import { HttpError } from '../utils/apiResponse';
 import { generateUniqueOrderNo } from '../utils/orderNo';
 import { audit } from '../utils/audit';
 
-export async function listOrders(status?: OrderStatus): Promise<Order[]> {
+export async function listOrders(userId: number, status?: OrderStatus): Promise<Order[]> {
+  const where: Record<string, unknown> = { userId };
+  if (status) where.status = status;
   return Order.findAll({
-    where: status ? { status } : undefined,
+    where,
     include: [
       { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
       { model: Address, as: 'address' },
@@ -17,24 +20,38 @@ export async function listOrders(status?: OrderStatus): Promise<Order[]> {
   });
 }
 
-export async function getOrderById(id: number): Promise<Order> {
-  const order = await Order.findByPk(id, {
+async function findOwnedOrder(
+  userId: number,
+  id: number,
+  transaction?: Transaction,
+): Promise<Order> {
+  const order = await Order.findOne({
+    where: { id, userId },
     include: [
       { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
       { model: Address, as: 'address' },
     ],
+    transaction,
   });
   if (!order) throw new HttpError(404, '订单不存在');
   return order;
 }
 
-export async function createOrderFromCart(addressId: number, cartItemIds: number[]): Promise<Order> {
+export async function getOrderById(userId: number, id: number): Promise<Order> {
+  return findOwnedOrder(userId, id);
+}
+
+export async function createOrderFromCart(
+  userId: number,
+  addressId: number,
+  cartItemIds: number[],
+): Promise<Order> {
   return sequelize.transaction(async (t) => {
-    const address = await Address.findByPk(addressId, { transaction: t });
+    const address = await Address.findOne({ where: { id: addressId, userId }, transaction: t });
     if (!address) throw new HttpError(400, '收货地址不存在');
 
     const cartItems = await Cart.findAll({
-      where: { id: { [Op.in]: cartItemIds } },
+      where: { id: { [Op.in]: cartItemIds }, userId },
       transaction: t,
     });
     if (cartItems.length !== cartItemIds.length) {
@@ -70,6 +87,7 @@ export async function createOrderFromCart(addressId: number, cartItemIds: number
     await Order.create(
       {
         orderNo,
+        userId,
         addressId,
         totalAmount: Number(total.toFixed(2)),
       },
@@ -98,7 +116,7 @@ export async function createOrderFromCart(addressId: number, cartItemIds: number
     }
 
     await Cart.destroy({
-      where: { id: { [Op.in]: cartItemIds } },
+      where: { id: { [Op.in]: cartItemIds }, userId },
       transaction: t,
     });
 
@@ -114,6 +132,7 @@ export async function createOrderFromCart(addressId: number, cartItemIds: number
       entity: 'order',
       entityId: orderId,
       details: {
+        userId,
         orderNo,
         addressId,
         totalAmount: Number(total.toFixed(2)),
@@ -124,9 +143,10 @@ export async function createOrderFromCart(addressId: number, cartItemIds: number
   });
 }
 
-export async function cancelOrder(id: number): Promise<Order> {
+export async function cancelOrder(userId: number, id: number): Promise<Order> {
   return sequelize.transaction(async (t) => {
-    const order = await Order.findByPk(id, {
+    const order = await Order.findOne({
+      where: { id, userId },
       include: [{ model: OrderItem, as: 'items' }],
       transaction: t,
     });
@@ -140,7 +160,6 @@ export async function cancelOrder(id: number): Promise<Order> {
     const items = (order.get({ plain: true }) as Order & { items?: OrderItem[] }).items ?? [];
     const productIds = items.map((it) => it.productId);
 
-    // Lock products before restoring stock (symmetry with createOrderFromCart)
     const lockedProducts = await Product.findAll({
       where: { id: { [Op.in]: productIds } },
       lock: t.LOCK.UPDATE,
@@ -171,7 +190,7 @@ export async function cancelOrder(id: number): Promise<Order> {
       event: 'order.cancel',
       entity: 'order',
       entityId: id,
-      details: { orderNo: order.get('orderNo'), restoredProductIds: productIds },
+      details: { userId, orderNo: order.get('orderNo'), restoredProductIds: productIds },
     });
     return order;
   });
@@ -188,12 +207,13 @@ const FORWARD_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
 };
 
 async function transitionOrder(
+  userId: number,
   id: number,
   target: OrderStatus,
   auditEvent: string,
 ): Promise<Order> {
   return sequelize.transaction(async (t) => {
-    const order = await Order.findByPk(id, { transaction: t });
+    const order = await Order.findOne({ where: { id, userId }, transaction: t });
     if (!order) throw new HttpError(404, '订单不存在');
 
     const current = order.get('status') as OrderStatus;
@@ -215,20 +235,20 @@ async function transitionOrder(
       event: auditEvent,
       entity: 'order',
       entityId: id,
-      details: { orderNo: order.get('orderNo'), from: current, to: target },
+      details: { userId, orderNo: order.get('orderNo'), from: current, to: target },
     });
     return order;
   });
 }
 
-export async function payOrder(id: number): Promise<Order> {
-  return transitionOrder(id, ORDER_STATUS.PAID, 'order.pay');
+export async function payOrder(userId: number, id: number): Promise<Order> {
+  return transitionOrder(userId, id, ORDER_STATUS.PAID, 'order.pay');
 }
 
-export async function shipOrder(id: number): Promise<Order> {
-  return transitionOrder(id, ORDER_STATUS.SHIPPED, 'order.ship');
+export async function shipOrder(userId: number, id: number): Promise<Order> {
+  return transitionOrder(userId, id, ORDER_STATUS.SHIPPED, 'order.ship');
 }
 
-export async function confirmOrder(id: number): Promise<Order> {
-  return transitionOrder(id, ORDER_STATUS.DONE, 'order.confirm');
+export async function confirmOrder(userId: number, id: number): Promise<Order> {
+  return transitionOrder(userId, id, ORDER_STATUS.DONE, 'order.confirm');
 }

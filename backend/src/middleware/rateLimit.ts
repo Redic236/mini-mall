@@ -31,3 +31,16 @@ export const writeRateLimiter: RequestHandler = isTest
         res.status(429).json(fail('写操作过于频繁，请稍后再试'));
       },
     });
+
+// Tight limit for auth endpoints to blunt brute-force login.
+export const authRateLimiter: RequestHandler = isTest
+  ? passthrough
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: 10,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json(fail('登录/注册尝试过于频繁，请稍后再试'));
+      },
+    });

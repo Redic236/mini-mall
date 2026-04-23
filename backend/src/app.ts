@@ -1,7 +1,7 @@
 import express, { Application } from 'express';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { apiRateLimiter, writeRateLimiter } from './middleware/rateLimit';
+import { apiRateLimiter, authRateLimiter, writeRateLimiter } from './middleware/rateLimit';
 import apiRouter from './routes';
 
 export function createApp(): Application {
@@ -16,6 +16,9 @@ export function createApp(): Application {
 
   // Global limiter on all API routes
   app.use('/api', apiRateLimiter);
+
+  // Tight limiter on auth endpoints (brute-force mitigation)
+  app.use('/api/auth', authRateLimiter);
 
   // Stricter limiter on write paths (orders + address mutations)
   app.use('/api/orders', writeRateLimiter);

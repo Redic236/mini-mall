@@ -40,7 +40,7 @@ export async function listCategories(): Promise<CategorySummary[]> {
     order: [[literal('count'), 'DESC']],
   });
   return rows.map((r) => {
-    const plain = r.get({ plain: true }) as { category: string; count: string | number };
+    const plain = r.get({ plain: true }) as unknown as { category: string; count: string | number };
     return { category: plain.category, count: Number(plain.count) };
   });
 }
