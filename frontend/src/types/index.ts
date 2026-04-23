@@ -87,3 +87,35 @@ export interface Order {
   address?: Address;
   createdAt?: string;
 }
+
+export interface ReviewAuthor {
+  id: number;
+  username: string;
+  avatar: string | null;
+}
+
+export interface Review {
+  id: number;
+  userId: number;
+  productId: number;
+  orderId: number;
+  rating: number;
+  content: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: ReviewAuthor;
+}
+
+export interface ReviewListResult {
+  items: Review[];
+  total: number;
+  averageRating: number;
+  page: number;
+  limit: number;
+}
+
+export interface ReviewEligibility {
+  canReview: boolean;
+  alreadyReviewed: boolean;
+  eligibleOrderId: number | null;
+}

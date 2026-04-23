@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Descriptions, InputNumber, Spin, message } from 'antd';
+import { Button, Descriptions, Divider, InputNumber, Spin, message } from 'antd';
 import { clearCurrent, loadProduct } from '@/store/slices/productSlice';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
+import ProductReviews from '@/components/ProductReviews';
 
 export default function ProductDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,9 @@ export default function ProductDetail(): JSX.Element {
       <Button type="primary" onClick={handleAdd} disabled={current.stock <= 0} style={{ marginLeft: 12 }}>
         加入购物车
       </Button>
+
+      <Divider />
+      <ProductReviews productId={current.id} />
     </div>
   );
 }

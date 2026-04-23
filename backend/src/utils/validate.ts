@@ -36,6 +36,24 @@ export const loginBodySchema = z.object({
   password: z.string().min(1, '密码不能为空'),
 });
 
+// Reviews
+export const createReviewBodySchema = z.object({
+  productId: positiveIntSchema,
+  rating: z.number().int().min(1, '评分最低 1 星').max(5, '评分最高 5 星'),
+  content: z.string().trim().max(1000, '内容不超过 1000 字').optional(),
+});
+
+export const updateReviewBodySchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  content: z.string().trim().max(1000).optional(),
+});
+
+export const reviewListQuerySchema = z.object({
+  productId: z.coerce.number().int().positive(),
+  page: z.coerce.number().int().positive().max(1000).default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
+});
+
 // Products
 export const productListQuerySchema = z.object({
   keyword: z.string().trim().min(1).max(100).optional(),

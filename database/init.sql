@@ -131,6 +131,31 @@ CREATE TABLE IF NOT EXISTS `order_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------
+-- reviews
+-- -------------------------------
+CREATE TABLE IF NOT EXISTS `reviews` (
+  `id`        INT           NOT NULL AUTO_INCREMENT,
+  `userId`    INT           NOT NULL,
+  `productId` INT           NOT NULL,
+  `orderId`   INT           NOT NULL,
+  `rating`    TINYINT       NOT NULL,
+  `content`   VARCHAR(1000) NULL,
+  `createdAt` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_reviews_user_product` (`userId`, `productId`),
+  KEY `idx_reviews_product_id` (`productId`),
+  KEY `idx_reviews_user_id` (`userId`),
+  CONSTRAINT `chk_reviews_rating_range` CHECK (`rating` BETWEEN 1 AND 5),
+  CONSTRAINT `fk_reviews_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_reviews_product`
+    FOREIGN KEY (`productId`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_reviews_order`
+    FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------
 -- Seed data (示例商品)
 -- -------------------------------
 INSERT INTO `products` (`name`, `price`, `description`, `category`, `image`, `stock`) VALUES
