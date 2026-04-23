@@ -1,3 +1,12 @@
+// Auth token is stored in localStorage for simplicity. This is safe only as
+// long as the app never renders untrusted HTML (no dangerouslySetInnerHTML,
+// no raw product-description rendering). The AntD components we use today
+// escape text content by default, so there is no DOM-XSS surface. If the
+// project ever adds rich-text / HTML rendering of user or admin input:
+//   1. Move the JWT to an httpOnly cookie set by the backend.
+//   2. Add CSRF protection (double-submit cookie or SameSite=strict).
+//   3. Ship a Content-Security-Policy header on the HTML document.
+// Until then, localStorage is the pragmatic choice.
 const TOKEN_KEY = 'mini-mall.token';
 const USER_KEY = 'mini-mall.user';
 
