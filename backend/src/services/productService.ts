@@ -12,6 +12,21 @@ export interface CategorySummary {
   count: number;
 }
 
+// Subquery literals attach aggregated review stats to each returned row
+// without an extra roundtrip. reviews.productId is indexed, so each
+// subquery is a cheap keyed read for the mini-mall scale.
+const AVERAGE_RATING_ATTR: [ReturnType<typeof literal>, string] = [
+  literal(
+    '(SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE reviews.productId = `Product`.`id`)',
+  ),
+  'averageRating',
+];
+
+const REVIEW_COUNT_ATTR: [ReturnType<typeof literal>, string] = [
+  literal('(SELECT COUNT(*) FROM reviews WHERE reviews.productId = `Product`.`id`)'),
+  'reviewCount',
+];
+
 export async function listProducts(filter: ListProductsFilter = {}): Promise<Product[]> {
   const where: Record<string, unknown> = {};
   if (filter.category) {
@@ -24,11 +39,17 @@ export async function listProducts(filter: ListProductsFilter = {}): Promise<Pro
       { description: { [Op.like]: like } },
     ];
   }
-  return Product.findAll({ where, order: [['id', 'ASC']] });
+  return Product.findAll({
+    where,
+    attributes: { include: [AVERAGE_RATING_ATTR, REVIEW_COUNT_ATTR] },
+    order: [['id', 'ASC']],
+  });
 }
 
 export async function getProductById(id: number): Promise<Product> {
-  const product = await Product.findByPk(id);
+  const product = await Product.findByPk(id, {
+    attributes: { include: [AVERAGE_RATING_ATTR, REVIEW_COUNT_ATTR] },
+  });
   if (!product) throw new HttpError(404, `商品 ${id} 不存在`);
   return product;
 }

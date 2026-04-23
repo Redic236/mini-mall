@@ -25,6 +25,8 @@ export interface Product {
   category: string;
   image: string | null;
   stock: number;
+  averageRating?: number;
+  reviewCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

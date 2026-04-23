@@ -11,6 +11,7 @@ import {
 } from '@/store/slices/orderSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { ORDER_STATUS_VALUES, type Order, type OrderStatus } from '@/types';
+import { formatCNY } from '@/utils/format';
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   待支付: 'orange',
@@ -92,7 +93,16 @@ export default function OrderList(): JSX.Element {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
         <h1 className="page-title" style={{ margin: 0 }}>我的订单</h1>
         <Select<OrderStatus | null>
           allowClear
@@ -123,7 +133,9 @@ export default function OrderList(): JSX.Element {
                   }
                   description={
                     <div>
-                      <div>总额：¥ {Number(order.totalAmount).toFixed(2)}</div>
+                      <div>
+                        总额：<strong style={{ color: '#1677ff' }}>{formatCNY(order.totalAmount)}</strong>
+                      </div>
                       <Typography.Text type="secondary">
                         {order.items?.map((it) => `${it.product?.name ?? ''} × ${it.quantity}`).join(' / ')}
                       </Typography.Text>

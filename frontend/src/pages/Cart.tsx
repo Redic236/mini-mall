@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { loadCart, removeCartItem, updateCartItem } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import type { CartItem } from '@/types';
+import { formatCNY } from '@/utils/format';
 
 export default function Cart(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -16,15 +17,17 @@ export default function Cart(): JSX.Element {
   }, [dispatch]);
 
   const columns: ColumnsType<CartItem> = [
-    { title: '商品', dataIndex: ['product', 'name'], key: 'name' },
+    { title: '商品', dataIndex: ['product', 'name'], key: 'name', width: 200 },
     {
       title: '单价',
       key: 'price',
-      render: (_, r) => `¥ ${Number(r.product?.price ?? 0).toFixed(2)}`,
+      width: 100,
+      render: (_, r) => formatCNY(r.product?.price ?? 0),
     },
     {
       title: '数量',
       key: 'quantity',
+      width: 140,
       render: (_, r) => (
         <InputNumber
           min={1}
@@ -39,14 +42,18 @@ export default function Cart(): JSX.Element {
     {
       title: '小计',
       key: 'subtotal',
-      render: (_, r) => `¥ ${(Number(r.product?.price ?? 0) * r.quantity).toFixed(2)}`,
+      width: 120,
+      render: (_, r) => formatCNY(Number(r.product?.price ?? 0) * r.quantity),
     },
     {
       title: '操作',
       key: 'action',
+      width: 100,
       render: (_, r) => (
         <Popconfirm title="确认删除？" onConfirm={() => void dispatch(removeCartItem(r.id))}>
-          <Button danger>删除</Button>
+          <Button danger size="small">
+            删除
+          </Button>
         </Popconfirm>
       ),
     },
@@ -63,9 +70,27 @@ export default function Cart(): JSX.Element {
   return (
     <div>
       <h1 className="page-title">购物车</h1>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} pagination={false} />
-      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 }}>
-        <span>共 {totalQuantity} 件，合计：¥ {Number(totalPrice).toFixed(2)}</span>
+      <Table
+        rowKey="id"
+        loading={loading}
+        columns={columns}
+        dataSource={items}
+        pagination={false}
+        scroll={{ x: 660 }}
+      />
+      <div
+        style={{
+          marginTop: 16,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span>
+          共 {totalQuantity} 件，合计：<strong style={{ color: '#1677ff' }}>{formatCNY(totalPrice)}</strong>
+        </span>
         <Button type="primary" disabled={items.length === 0} onClick={() => navigate('/order-confirm')}>
           去结算
         </Button>

@@ -30,3 +30,28 @@ body {
   font-weight: 600;
   margin: 0 0 16px;
 }
+
+// Header: tighter padding on narrow viewports so the nav doesn't crowd the
+// user dropdown on phones. antd's default Header padding is 0 50px.
+.ant-layout-header {
+  padding: 0 16px !important;
+
+  @media (min-width: 768px) {
+    padding: 0 32px !important;
+  }
+}
+
+// Tablet/phone tweaks
+@media (max-width: 640px) {
+  .app-container {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .hide-on-mobile {
+    display: none;
+  }
+}

@@ -5,6 +5,7 @@ import { loadAddresses } from '@/store/slices/addressSlice';
 import { loadCart } from '@/store/slices/cartSlice';
 import { submitOrder } from '@/store/slices/orderSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
+import { formatCNY } from '@/utils/format';
 
 export default function OrderConfirm(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -68,7 +69,8 @@ export default function OrderConfirm(): JSX.Element {
       </Radio.Group>
 
       <Typography.Title level={5} style={{ marginTop: 24 }}>
-        商品（{items.length} 件） 合计 ¥ {Number(totalPrice).toFixed(2)}
+        商品（{items.length} 件） 合计{' '}
+        <span style={{ color: '#1677ff' }}>{formatCNY(totalPrice)}</span>
       </Typography.Title>
 
       <Button type="primary" onClick={handleSubmit} style={{ marginTop: 16 }}>

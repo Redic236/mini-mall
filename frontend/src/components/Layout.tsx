@@ -34,23 +34,34 @@ export default function Layout(): JSX.Element {
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', background: '#fff' }}>
-        <div style={{ color: '#1677ff', fontWeight: 700, marginRight: 32 }}>Mini 商城</div>
+      <Header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#fff',
+          gap: 12,
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <div style={{ color: '#1677ff', fontWeight: 700, whiteSpace: 'nowrap' }}>Mini 商城</div>
         <Menu
           mode="horizontal"
           selectedKeys={[selectedKey]}
           items={NAV_ITEMS}
-          style={{ flex: 1, borderBottom: 'none' }}
+          style={{ flex: 1, borderBottom: 'none', minWidth: 0 }}
         />
         {user ? (
           <Dropdown menu={{ items: userMenu }} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>
               <Avatar size="small" icon={<UserOutlined />} src={user.avatar ?? undefined} />
-              <span>{user.username}</span>
+              <span className="hide-on-mobile">{user.username}</span>
             </Space>
           </Dropdown>
         ) : (
-          <Space>
+          <Space size={8}>
             <Button type="text" onClick={() => navigate('/login')}>
               登录
             </Button>
