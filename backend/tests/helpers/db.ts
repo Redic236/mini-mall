@@ -5,7 +5,7 @@ import { hashPassword } from '../../src/utils/password';
 export async function truncateAll(): Promise<void> {
   // DELETE in FK-safe order (children before parents). Orders reference
   // coupons, so coupons must outlive orders during the cascade.
-  for (const table of ['reviews', 'payments', 'order_items', 'orders', 'carts', 'coupons', 'addresses', 'products', 'users']) {
+  for (const table of ['reviews', 'payments', 'shipment_events', 'order_items', 'orders', 'carts', 'coupons', 'addresses', 'products', 'users']) {
     await sequelize.query(`DELETE FROM \`${table}\``);
   }
 }

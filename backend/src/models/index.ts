@@ -11,3 +11,5 @@ export type { UserRole } from './User';
 export { Review } from './Review';
 export { Coupon, COUPON_TYPE } from './Coupon';
 export type { CouponType } from './Coupon';
+export { ShipmentEvent, SHIPMENT_STATUS, SHIPMENT_STATUS_LABEL } from './ShipmentEvent';
+export type { ShipmentStatus } from './ShipmentEvent';

@@ -169,3 +169,28 @@ export interface ReviewEligibility {
   alreadyReviewed: boolean;
   eligibleOrderId: number | null;
 }
+
+export type ShipmentStatus =
+  | 'picked_up'
+  | 'in_transit'
+  | 'arrived'
+  | 'out_for_delivery'
+  | 'delivered';
+
+export interface ShipmentEvent {
+  id: number;
+  orderId: number;
+  status: ShipmentStatus;
+  location: string | null;
+  note: string | null;
+  happenedAt: string;
+  createdAt?: string;
+}
+
+export const SHIPMENT_STATUS_LABEL: Record<ShipmentStatus, string> = {
+  picked_up: '已揽件',
+  in_transit: '运输中',
+  arrived: '到达站点',
+  out_for_delivery: '派送中',
+  delivered: '已签收',
+};

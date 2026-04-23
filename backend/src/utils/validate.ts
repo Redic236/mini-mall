@@ -121,6 +121,14 @@ export const orderStatusQuerySchema = z
   .enum(['待支付', '已支付', '已发货', '已完成', '已取消'])
   .optional();
 
+// Shipment events
+export const shipmentEventBodySchema = z.object({
+  status: z.enum(['picked_up', 'in_transit', 'arrived', 'out_for_delivery', 'delivered']),
+  location: z.string().trim().max(100).nullable().optional(),
+  note: z.string().trim().max(255).nullable().optional(),
+  happenedAt: z.coerce.date().optional(),
+});
+
 // Admin
 export const adminOrderListQuerySchema = z.object({
   status: z.enum(['待支付', '已支付', '已发货', '已完成', '已取消']).optional(),

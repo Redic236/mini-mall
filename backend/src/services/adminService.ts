@@ -1,9 +1,10 @@
 import { Op } from 'sequelize';
-import { Address, Order, OrderItem, ORDER_STATUS, Product } from '../models';
+import { Address, Order, OrderItem, ORDER_STATUS, Product, SHIPMENT_STATUS } from '../models';
 import type { OrderStatus } from '../models';
 import { sequelize } from '../config/database';
 import { HttpError } from '../utils/apiResponse';
 import { audit } from '../utils/audit';
+import { addShipmentEvent } from './shipmentService';
 
 export interface AdminStats {
   totalOrders: number;
@@ -103,6 +104,15 @@ export async function adminShipOrder(orderId: number, adminId: number): Promise<
 
     order.set('status', ORDER_STATUS.SHIPPED);
     await order.save({ transaction: t });
+
+    // Seed the shipment timeline. Further tracking nodes (in_transit, arrived,
+    // delivered) can be appended via /admin/orders/:id/shipment-events.
+    await addShipmentEvent(
+      orderId,
+      { status: SHIPMENT_STATUS.PICKED_UP, note: '商家已发货，等待物流揽收' },
+      t,
+    );
+
     await order.reload({
       include: [
         { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Dropdown, Empty, List, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
+import { Button, Collapse, Dropdown, Empty, List, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import { formatCNY } from '@/utils/format';
 import OrderCountdown from '@/components/OrderCountdown';
 import { createPayIntent } from '@/services/payment';
 import { stashPaymentSignatures } from '@/pages/Checkout';
+import ShipmentTimeline from '@/components/ShipmentTimeline';
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   待支付: 'orange',
@@ -148,6 +149,11 @@ export default function OrderList(): JSX.Element {
                     <div>
                       <div>
                         总额：<strong style={{ color: '#1677ff' }}>{formatCNY(order.totalAmount)}</strong>
+                        {order.discountAmount > 0 && (
+                          <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                            (优惠 -{formatCNY(order.discountAmount)})
+                          </Typography.Text>
+                        )}
                       </div>
                       <Typography.Text type="secondary" style={{ display: 'block' }}>
                         收件：{order.receiverName} {order.receiverPhone} — {order.province}
@@ -156,6 +162,20 @@ export default function OrderList(): JSX.Element {
                       <Typography.Text type="secondary">
                         {order.items?.map((it) => `${it.product?.name ?? ''} × ${it.quantity}`).join(' / ')}
                       </Typography.Text>
+                      {(order.status === '已发货' || order.status === '已完成') && (
+                        <Collapse
+                          ghost
+                          size="small"
+                          style={{ marginTop: 8 }}
+                          items={[
+                            {
+                              key: 'shipment',
+                              label: '查看物流',
+                              children: <ShipmentTimeline orderId={order.id} />,
+                            },
+                          ]}
+                        />
+                      )}
                     </div>
                   }
                 />

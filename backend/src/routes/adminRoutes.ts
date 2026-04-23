@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as adminController from '../controllers/adminController';
 import * as couponController from '../controllers/couponController';
+import * as shipmentController from '../controllers/shipmentController';
 
 const router = Router();
 
@@ -9,6 +10,8 @@ router.get('/stats', adminController.stats);
 
 router.get('/orders', adminController.listOrders);
 router.put('/orders/:id/ship', adminController.shipOrder);
+router.get('/orders/:id/shipment-events', shipmentController.adminListForOrder);
+router.post('/orders/:id/shipment-events', shipmentController.adminAddEvent);
 
 router.get('/products', adminController.listProducts);
 router.post('/products', adminController.createProduct);

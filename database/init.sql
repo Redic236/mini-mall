@@ -225,6 +225,24 @@ CREATE TABLE IF NOT EXISTS `payments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------
+-- shipment_events (物流轨迹)
+-- -------------------------------
+CREATE TABLE IF NOT EXISTS `shipment_events` (
+  `id`         INT          NOT NULL AUTO_INCREMENT,
+  `orderId`    INT          NOT NULL,
+  `status`     VARCHAR(30)  NOT NULL,
+  `location`   VARCHAR(100) NULL,
+  `note`       VARCHAR(255) NULL,
+  `happenedAt` DATETIME     NOT NULL,
+  `createdAt`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_shipment_events_order_id` (`orderId`),
+  CONSTRAINT `fk_shipment_events_order`
+    FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------
 -- Seed data (示例商品)
 -- -------------------------------
 INSERT INTO `products` (`name`, `price`, `description`, `category`, `image`, `stock`) VALUES
