@@ -50,7 +50,7 @@ npm run dev
 
 ## 测试
 
-后端：
+后端（vitest + supertest，~125 用例，独立 `mini_mall_test` 库）：
 
 ```bash
 cd backend
@@ -65,18 +65,27 @@ npm run test:coverage  # 覆盖率报告
 CREATE DATABASE IF NOT EXISTS mini_mall_test DEFAULT CHARACTER SET utf8mb4;
 ```
 
+前端（vitest + @testing-library/react + jsdom，聚焦 utils / hooks / slices / 关键守卫 / 登录表单）：
+
+```bash
+cd frontend
+npm test               # 跑一次
+npm run test:watch
+npm run test:coverage
+```
+
 ## CI
 
 GitHub Actions 配置在 [.github/workflows/ci.yml](.github/workflows/ci.yml)，每次 push / PR 触发：
 
 - **backend job**：起 MySQL 8 服务 → `npm ci` → `npm run typecheck` → `npm run test:coverage`，覆盖率作为 artifact 上传
-- **frontend job**：`npm ci` → `npm run typecheck` → `npm run build`，dist 作为 artifact 上传
+- **frontend job**：`npm ci` → `npm run typecheck` → `npm test` → `npm run build`，dist 作为 artifact 上传
 
 本地复现 CI 行为：
 
 ```bash
 cd backend && npm run verify     # typecheck + test
-cd frontend && npm run verify    # typecheck + build
+cd frontend && npm run verify    # typecheck + test + build
 ```
 
 ## 文档
