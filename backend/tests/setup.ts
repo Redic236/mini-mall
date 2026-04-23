@@ -1,25 +1,20 @@
-import path from 'node:path';
-import dotenv from 'dotenv';
 import { beforeAll, afterAll } from 'vitest';
-
-// Load the shared .env for DB_HOST/DB_USER/DB_PASSWORD first ...
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
-// ... then force the test database name BEFORE any app module loads.
-process.env.NODE_ENV = 'test';
-process.env.DB_NAME = 'mini_mall_test';
-
-// Silence winston output during tests — override the default console transport.
-process.env.LOG_LEVEL = 'error';
-
-// Now we can safely import app modules.
 import { sequelize } from '../src/config/database';
 import '../src/models';
 
+// NODE_ENV / DB_NAME / LOG_LEVEL are set via vitest.config.ts `test.env`
+// (must be applied before any app module loads due to ES module import hoisting).
+
 beforeAll(async () => {
+  // Hard guard — never run schema-resetting operations against a non-test DB.
+  const dbName = (sequelize.getDatabaseName() as string) ?? '';
+  if (!dbName.endsWith('_test')) {
+    throw new Error(
+      `Refusing to run tests against database "${dbName}". Test DB name must end with "_test".`,
+    );
+  }
+
   await sequelize.authenticate();
-  // Drop and recreate tables from models. CHECK constraints from init.sql
-  // are tested separately; this keeps tests fast and isolated from prod schema.
   await sequelize.sync({ force: true });
 });
 
