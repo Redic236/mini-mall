@@ -12,6 +12,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { clearCurrent, loadProduct } from '@/store/slices/productSlice';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/store';
@@ -77,8 +78,27 @@ export default function ProductDetail(): JSX.Element {
   const rating = Number(current.averageRating ?? 0);
   const reviewCount = Number(current.reviewCount ?? 0);
 
+  const handleBack = (): void => {
+    // Prefer history.back when we arrived via an in-app navigation — that
+    // restores the home page's filter / pagination / scroll state. On a
+    // direct-link visit (location.key === 'default'), just go to /.
+    if (location.key !== 'default') {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div>
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
+        onClick={handleBack}
+        style={{ marginBottom: 8, paddingLeft: 0 }}
+      >
+        返回
+      </Button>
       <h1 className="page-title">{current.name}</h1>
       <Space align="center" size={12} style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <Rate disabled allowHalf value={rating} />
