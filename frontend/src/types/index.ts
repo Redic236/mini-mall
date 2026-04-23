@@ -95,11 +95,39 @@ export interface Order {
   city: string;
   district: string;
   detailAddress: string;
+  couponId: number | null;
+  discountAmount: number;
   totalAmount: number;
   status: OrderStatus;
   items?: OrderItem[];
   address?: Address;
   createdAt?: string;
+}
+
+export type CouponType = 'fixed' | 'percentage';
+
+export interface Coupon {
+  id: number;
+  code: string;
+  name: string;
+  type: CouponType;
+  value: number;
+  minOrderAmount: number;
+  startsAt: string;
+  expiresAt: string;
+  totalQuantity: number | null;
+  usedCount: number;
+  perUserLimit: number;
+  isActive: boolean;
+}
+
+export interface CouponPreview {
+  couponId: number;
+  code: string;
+  name: string;
+  type: CouponType;
+  discountAmount: number;
+  finalAmount: number;
 }
 
 export interface ReviewAuthor {

@@ -90,7 +90,32 @@ export const addressBodySchema = z.object({
 export const createOrderBodySchema = z.object({
   addressId: positiveIntSchema,
   cartItemIds: z.array(positiveIntSchema).min(1, '请至少选择一件商品'),
+  couponCode: z.string().trim().min(1).max(40).optional(),
 });
+
+// Coupons
+export const couponPreviewBodySchema = z.object({
+  code: z.string().trim().min(1).max(40),
+  orderAmount: z.coerce.number().nonnegative(),
+});
+
+export const couponBodySchema = z
+  .object({
+    code: z.string().trim().min(1).max(40).regex(/^[A-Z0-9_-]+$/, 'code 仅允许大写字母、数字、下划线和连字符'),
+    name: z.string().trim().min(1).max(100),
+    type: z.enum(['fixed', 'percentage']),
+    value: z.coerce.number().nonnegative(),
+    minOrderAmount: z.coerce.number().nonnegative().default(0),
+    startsAt: z.coerce.date(),
+    expiresAt: z.coerce.date(),
+    totalQuantity: z.coerce.number().int().positive().nullable().optional(),
+    perUserLimit: z.coerce.number().int().positive().default(1),
+    isActive: z.boolean().optional(),
+  })
+  .refine((v) => v.startsAt < v.expiresAt, {
+    message: '生效时间必须早于过期时间',
+    path: ['expiresAt'],
+  });
 
 export const orderStatusQuerySchema = z
   .enum(['待支付', '已支付', '已发货', '已完成', '已取消'])

@@ -7,6 +7,7 @@ import addressRoutes from './addressRoutes';
 import reviewRoutes from './reviewRoutes';
 import paymentRoutes from './paymentRoutes';
 import adminRoutes from './adminRoutes';
+import couponRoutes from './couponRoutes';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -22,6 +23,8 @@ router.use('/reviews', reviewRoutes);
 // Payments: /callback is public (HMAC-authenticated), /:id needs a user
 // token. The router itself handles the split.
 router.use('/payments', paymentRoutes);
+// Coupons: listing public coupons is unauthed; /preview needs a user token.
+router.use('/coupons', couponRoutes);
 
 // Everything below requires authentication.
 router.use('/cart', requireAuth, cartRoutes);

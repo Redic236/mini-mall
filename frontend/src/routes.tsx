@@ -19,6 +19,8 @@ const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminOrders = lazy(() => import('@/pages/admin/AdminOrders'));
 const AdminProducts = lazy(() => import('@/pages/admin/AdminProducts'));
+const AdminCoupons = lazy(() => import('@/pages/admin/AdminCoupons'));
+const Coupons = lazy(() => import('@/pages/Coupons'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 
@@ -29,6 +31,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: 'products/:id', element: <ProductDetail /> },
+      { path: 'coupons', element: <Coupons /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       {
@@ -98,6 +101,7 @@ export const router = createBrowserRouter([
           { index: true, element: <AdminDashboard /> },
           { path: 'orders', element: <AdminOrders /> },
           { path: 'products', element: <AdminProducts /> },
+          { path: 'coupons', element: <AdminCoupons /> },
         ],
       },
     ],

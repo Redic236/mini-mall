@@ -27,8 +27,8 @@ export const loadOrder = createAsyncThunk('orders/loadOne', async (id: number) =
 
 export const submitOrder = createAsyncThunk(
   'orders/submit',
-  async (payload: { addressId: number; cartItemIds: number[] }) =>
-    createOrder(payload.addressId, payload.cartItemIds),
+  async (payload: { addressId: number; cartItemIds: number[]; couponCode?: string }) =>
+    createOrder(payload.addressId, payload.cartItemIds, payload.couponCode),
 );
 
 function makeTransitionThunk(

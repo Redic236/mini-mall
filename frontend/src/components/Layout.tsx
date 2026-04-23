@@ -10,6 +10,7 @@ const { Header, Content, Footer } = AntLayout;
 
 const NAV_ITEMS = [
   { key: '/', label: <Link to="/">首页</Link> },
+  { key: '/coupons', label: <Link to="/coupons">优惠券</Link> },
   { key: '/cart', label: <Link to="/cart">购物车</Link> },
   { key: '/orders', label: <Link to="/orders">订单</Link> },
   { key: '/addresses', label: <Link to="/addresses">地址</Link> },

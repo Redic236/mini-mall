@@ -27,13 +27,21 @@ interface OrderAttributes {
   city: string;
   district: string;
   detailAddress: string;
+  // Discount applied at placement. `totalAmount` is the amount the user
+  // actually owes (items sum - discount). `couponId` is nullable; regular
+  // orders without a coupon have discountAmount = 0.
+  couponId: number | null;
+  discountAmount: number;
   totalAmount: number;
   status: OrderStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-type OrderCreationAttributes = Optional<OrderAttributes, 'id' | 'status'>;
+type OrderCreationAttributes = Optional<
+  OrderAttributes,
+  'id' | 'status' | 'couponId' | 'discountAmount'
+>;
 
 export class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
   public id!: number;
@@ -46,6 +54,8 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> imple
   public city!: string;
   public district!: string;
   public detailAddress!: string;
+  public couponId!: number | null;
+  public discountAmount!: number;
   public totalAmount!: number;
   public status!: OrderStatus;
   public readonly createdAt!: Date;
@@ -64,6 +74,8 @@ Order.init(
     city: { type: DataTypes.STRING(50), allowNull: false },
     district: { type: DataTypes.STRING(50), allowNull: false },
     detailAddress: { type: DataTypes.STRING(255), allowNull: false },
+    couponId: { type: DataTypes.INTEGER, allowNull: true },
+    discountAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
     totalAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: ORDER_STATUS.PENDING },
   },

@@ -33,11 +33,11 @@ export async function detail(req: Request, res: Response, next: NextFunction): P
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = parseOrThrow(createOrderBodySchema, req.body);
-    const order = await orderService.createOrderFromCart(
-      getUserId(req),
-      body.addressId,
-      body.cartItemIds,
-    );
+    const order = await orderService.createOrderFromCart(getUserId(req), {
+      addressId: body.addressId,
+      cartItemIds: body.cartItemIds,
+      couponCode: body.couponCode,
+    });
     res.status(201).json(ok(order));
   } catch (err) {
     next(err);

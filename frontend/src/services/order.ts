@@ -10,9 +10,17 @@ export async function fetchOrder(id: number): Promise<Order> {
   return unwrap<Order>(http.get<ApiResponse<Order>>(`/orders/${id}`));
 }
 
-export async function createOrder(addressId: number, cartItemIds: number[]): Promise<Order> {
+export async function createOrder(
+  addressId: number,
+  cartItemIds: number[],
+  couponCode?: string,
+): Promise<Order> {
   return unwrap<Order>(
-    http.post<ApiResponse<Order>>('/orders', { addressId, cartItemIds }),
+    http.post<ApiResponse<Order>>('/orders', {
+      addressId,
+      cartItemIds,
+      ...(couponCode ? { couponCode } : {}),
+    }),
   );
 }
 

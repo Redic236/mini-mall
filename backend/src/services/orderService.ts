@@ -1,12 +1,13 @@
 import { Op } from 'sequelize';
 import type { Transaction } from 'sequelize';
-import { Address, Cart, Order, OrderItem, ORDER_STATUS, Product } from '../models';
+import { Address, Cart, Coupon, Order, OrderItem, ORDER_STATUS, Product } from '../models';
 import type { OrderStatus } from '../models';
 import { sequelize } from '../config/database';
 import { HttpError } from '../utils/apiResponse';
 import { generateUniqueOrderNo } from '../utils/orderNo';
 import { audit } from '../utils/audit';
 import { logger } from '../utils/logger';
+import { validateCouponForOrder } from './couponService';
 
 export async function listOrders(userId: number, status?: OrderStatus): Promise<Order[]> {
   const where: Record<string, unknown> = { userId };
@@ -42,12 +43,15 @@ export async function getOrderById(userId: number, id: number): Promise<Order> {
   return findOwnedOrder(userId, id);
 }
 
-export async function createOrderFromCart(
-  userId: number,
-  addressId: number,
-  cartItemIds: number[],
-): Promise<Order> {
+export interface CreateOrderInput {
+  addressId: number;
+  cartItemIds: number[];
+  couponCode?: string;
+}
+
+export async function createOrderFromCart(userId: number, input: CreateOrderInput): Promise<Order> {
   return sequelize.transaction(async (t) => {
+    const { addressId, cartItemIds, couponCode } = input;
     const address = await Address.findOne({ where: { id: addressId, userId }, transaction: t });
     if (!address) throw new HttpError(400, '收货地址不存在');
 
@@ -84,6 +88,20 @@ export async function createOrderFromCart(
       total += Number(product.get('price')) * quantity;
     }
 
+    // Coupon (optional). Validates + locks the coupon row so concurrent
+    // redemptions can't oversubscribe totalQuantity or perUserLimit.
+    let couponId: number | null = null;
+    let discountAmount = 0;
+    let finalTotal = Number(total.toFixed(2));
+    if (couponCode) {
+      const result = await validateCouponForOrder(couponCode, userId, finalTotal, t);
+      couponId = result.coupon.get('id') as number;
+      discountAmount = result.discount;
+      finalTotal = result.finalAmount;
+      result.coupon.set('usedCount', (result.coupon.get('usedCount') as number) + 1);
+      await result.coupon.save({ transaction: t });
+    }
+
     const orderNo = await generateUniqueOrderNo(t);
     await Order.create(
       {
@@ -99,7 +117,9 @@ export async function createOrderFromCart(
         city: address.get('city') as string,
         district: address.get('district') as string,
         detailAddress: address.get('detail') as string,
-        totalAmount: Number(total.toFixed(2)),
+        couponId,
+        discountAmount,
+        totalAmount: finalTotal,
       },
       { transaction: t },
     );
@@ -145,7 +165,10 @@ export async function createOrderFromCart(
         userId,
         orderNo,
         addressId,
-        totalAmount: Number(total.toFixed(2)),
+        subtotal: Number(total.toFixed(2)),
+        couponId,
+        discountAmount,
+        totalAmount: finalTotal,
         itemCount: cartItems.length,
       },
     });
@@ -183,6 +206,23 @@ async function cancelPendingInTxn(
       const currentStock = Number(product.get('stock'));
       product.set('stock', currentStock + Number(item.quantity));
       await product.save({ transaction });
+    }
+  }
+
+  // If the cancelled order used a coupon, give that claim back so the same
+  // user's perUserLimit count drops. usedCount also rolls back; otherwise a
+  // user who redeems + cancels once is locked out forever.
+  const couponId = order.get('couponId') as number | null;
+  if (couponId !== null) {
+    const coupon = await Coupon.findOne({
+      where: { id: couponId },
+      lock: transaction.LOCK.UPDATE,
+      transaction,
+    });
+    if (coupon) {
+      const current = coupon.get('usedCount') as number;
+      coupon.set('usedCount', Math.max(0, current - 1));
+      await coupon.save({ transaction });
     }
   }
 

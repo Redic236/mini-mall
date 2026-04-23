@@ -2,7 +2,7 @@ import { logger } from './logger';
 
 export interface AuditContext {
   event: string;
-  entity: 'order' | 'address' | 'cart' | 'product' | 'user';
+  entity: 'order' | 'address' | 'cart' | 'product' | 'user' | 'coupon' | 'shipment';
   entityId: number | string | null;
   details?: Record<string, unknown>;
 }

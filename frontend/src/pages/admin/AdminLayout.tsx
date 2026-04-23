@@ -8,6 +8,7 @@ const NAV = [
   { key: '/admin', label: <Link to="/admin">总览</Link> },
   { key: '/admin/orders', label: <Link to="/admin/orders">订单管理</Link> },
   { key: '/admin/products', label: <Link to="/admin/products">商品管理</Link> },
+  { key: '/admin/coupons', label: <Link to="/admin/coupons">优惠券</Link> },
 ];
 
 export default function AdminLayout(): JSX.Element {

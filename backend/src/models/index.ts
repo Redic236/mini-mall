@@ -9,3 +9,5 @@ export type { PaymentMethod, PaymentStatus } from './Payment';
 export { User, USER_ROLE } from './User';
 export type { UserRole } from './User';
 export { Review } from './Review';
+export { Coupon, COUPON_TYPE } from './Coupon';
+export type { CouponType } from './Coupon';

@@ -94,6 +94,27 @@ CREATE TABLE IF NOT EXISTS `carts` (
 -- -------------------------------
 -- orders
 -- -------------------------------
+CREATE TABLE IF NOT EXISTS `coupons` (
+  `id`              INT            NOT NULL AUTO_INCREMENT,
+  `code`            VARCHAR(40)    NOT NULL,
+  `name`            VARCHAR(100)   NOT NULL,
+  `type`            VARCHAR(20)    NOT NULL,
+  `value`           DECIMAL(10, 2) NOT NULL,
+  `minOrderAmount`  DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  `startsAt`        DATETIME       NOT NULL,
+  `expiresAt`       DATETIME       NOT NULL,
+  `totalQuantity`   INT            NULL,
+  `usedCount`       INT            NOT NULL DEFAULT 0,
+  `perUserLimit`    INT            NOT NULL DEFAULT 1,
+  `isActive`        BOOLEAN        NOT NULL DEFAULT TRUE,
+  `createdAt`       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_coupons_code` (`code`),
+  KEY `idx_coupons_is_active` (`isActive`),
+  CONSTRAINT `chk_coupons_value_nonneg` CHECK (`value` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `orders` (
   `id`             INT            NOT NULL AUTO_INCREMENT,
   `orderNo`        VARCHAR(32)    NOT NULL,
@@ -108,6 +129,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `city`           VARCHAR(50)    NOT NULL,
   `district`       VARCHAR(50)    NOT NULL,
   `detailAddress`  VARCHAR(255)   NOT NULL,
+  -- Coupon applied at checkout. `totalAmount` is post-discount.
+  `couponId`       INT            NULL,
+  `discountAmount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
   `totalAmount`    DECIMAL(10, 2) NOT NULL,
   `status`         VARCHAR(50)    NOT NULL DEFAULT '待支付',
   `createdAt`      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -118,11 +142,14 @@ CREATE TABLE IF NOT EXISTS `orders` (
   KEY `idx_orders_address_id` (`addressId`),
   KEY `idx_orders_status` (`status`),
   KEY `idx_orders_status_created_at` (`status`, `createdAt`),
+  KEY `idx_orders_coupon_id` (`couponId`),
   CONSTRAINT `chk_orders_total_nonneg` CHECK (`totalAmount` >= 0),
   CONSTRAINT `fk_orders_user`
     FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_orders_address`
-    FOREIGN KEY (`addressId`) REFERENCES `addresses` (`id`)
+    FOREIGN KEY (`addressId`) REFERENCES `addresses` (`id`),
+  CONSTRAINT `fk_orders_coupon`
+    FOREIGN KEY (`couponId`) REFERENCES `coupons` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------
