@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Card, Col, Row, Skeleton, Statistic, Tooltip, Typography } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Card, Col, Result, Row, Skeleton, Statistic, Tooltip, Typography } from 'antd';
 import {
   fetchAdminStats,
   fetchAdminStatsHistory,
@@ -47,13 +47,43 @@ function Tile({ title, value, series, seriesLabel, color }: TileProps): JSX.Elem
 export default function AdminDashboard(): JSX.Element {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [history, setHistory] = useState<StatsHistory | null>(null);
+  const [statsError, setStatsError] = useState(false);
+
+  const load = useCallback(() => {
+    setStatsError(false);
+    // Fire both requests in parallel — the dashboard renders tiles as soon
+    // as stats resolves; sparklines light up when history lands. The history
+    // call is best-effort: a failure there just leaves the sparkline row
+    // empty. A failure on stats blocks the whole tile grid, so we expose a
+    // retry affordance instead of leaving the user on a forever-skeleton.
+    void fetchAdminStats()
+      .then(setStats)
+      .catch(() => setStatsError(true));
+    void fetchAdminStatsHistory(7)
+      .then(setHistory)
+      .catch(() => {
+        /* sparkline is best-effort; tiles still render */
+      });
+  }, []);
 
   useEffect(() => {
-    // Fire both requests in parallel — the dashboard renders tiles as soon
-    // as stats resolves; sparklines light up when history lands.
-    void fetchAdminStats().then(setStats);
-    void fetchAdminStatsHistory(7).then(setHistory);
-  }, []);
+    load();
+  }, [load]);
+
+  if (statsError && !stats) {
+    return (
+      <Result
+        status="warning"
+        title="统计数据加载失败"
+        subTitle="请检查网络后重试"
+        extra={
+          <Button type="primary" onClick={load}>
+            重试
+          </Button>
+        }
+      />
+    );
+  }
 
   if (!stats) {
     return (
