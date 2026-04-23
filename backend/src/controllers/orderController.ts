@@ -48,3 +48,33 @@ export async function cancel(req: Request, res: Response, next: NextFunction): P
     next(err);
   }
 }
+
+export async function pay(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = parseOrThrow(idSchema, req.params.id, 'id');
+    const order = await orderService.payOrder(id);
+    res.json(ok(order));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function ship(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = parseOrThrow(idSchema, req.params.id, 'id');
+    const order = await orderService.shipOrder(id);
+    res.json(ok(order));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function confirm(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = parseOrThrow(idSchema, req.params.id, 'id');
+    const order = await orderService.confirmOrder(id);
+    res.json(ok(order));
+  } catch (err) {
+    next(err);
+  }
+}

@@ -176,3 +176,59 @@ export async function cancelOrder(id: number): Promise<Order> {
     return order;
   });
 }
+
+// Allowed forward transitions for non-destructive state changes. Cancellation
+// from 待支付 is handled by cancelOrder separately because it restores stock.
+const FORWARD_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  [ORDER_STATUS.PENDING]: [ORDER_STATUS.PAID],
+  [ORDER_STATUS.PAID]: [ORDER_STATUS.SHIPPED],
+  [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DONE],
+  [ORDER_STATUS.DONE]: [],
+  [ORDER_STATUS.CANCELLED]: [],
+};
+
+async function transitionOrder(
+  id: number,
+  target: OrderStatus,
+  auditEvent: string,
+): Promise<Order> {
+  return sequelize.transaction(async (t) => {
+    const order = await Order.findByPk(id, { transaction: t });
+    if (!order) throw new HttpError(404, '订单不存在');
+
+    const current = order.get('status') as OrderStatus;
+    const allowed = FORWARD_TRANSITIONS[current];
+    if (!allowed.includes(target)) {
+      throw new HttpError(400, `订单当前状态为「${current}」，无法变更为「${target}」`);
+    }
+
+    order.set('status', target);
+    await order.save({ transaction: t });
+    await order.reload({
+      include: [
+        { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
+        { model: Address, as: 'address' },
+      ],
+      transaction: t,
+    });
+    audit({
+      event: auditEvent,
+      entity: 'order',
+      entityId: id,
+      details: { orderNo: order.get('orderNo'), from: current, to: target },
+    });
+    return order;
+  });
+}
+
+export async function payOrder(id: number): Promise<Order> {
+  return transitionOrder(id, ORDER_STATUS.PAID, 'order.pay');
+}
+
+export async function shipOrder(id: number): Promise<Order> {
+  return transitionOrder(id, ORDER_STATUS.SHIPPED, 'order.ship');
+}
+
+export async function confirmOrder(id: number): Promise<Order> {
+  return transitionOrder(id, ORDER_STATUS.DONE, 'order.confirm');
+}

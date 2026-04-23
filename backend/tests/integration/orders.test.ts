@@ -189,4 +189,92 @@ describe('Orders API', () => {
       expect(res.status).toBe(404);
     });
   });
+
+  describe('Order state transitions (pay / ship / confirm)', () => {
+    async function createOrder(): Promise<number> {
+      const res = await request(getApp())
+        .post('/api/orders')
+        .send({ addressId: data.address!.get('id'), cartItemIds: [cartId1] });
+      return res.body.data.id as number;
+    }
+
+    it('walks 待支付 -> 已支付 -> 已发货 -> 已完成', async () => {
+      const id = await createOrder();
+
+      const paid = await request(getApp()).put(`/api/orders/${id}/pay`);
+      expect(paid.status).toBe(200);
+      expect(paid.body.data.status).toBe('已支付');
+
+      const shipped = await request(getApp()).put(`/api/orders/${id}/ship`);
+      expect(shipped.status).toBe(200);
+      expect(shipped.body.data.status).toBe('已发货');
+
+      const done = await request(getApp()).put(`/api/orders/${id}/confirm`);
+      expect(done.status).toBe(200);
+      expect(done.body.data.status).toBe('已完成');
+    });
+
+    it('rejects ship before pay', async () => {
+      const id = await createOrder();
+      const res = await request(getApp()).put(`/api/orders/${id}/ship`);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('待支付');
+    });
+
+    it('rejects confirm before ship', async () => {
+      const id = await createOrder();
+      await request(getApp()).put(`/api/orders/${id}/pay`);
+      const res = await request(getApp()).put(`/api/orders/${id}/confirm`);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('已支付');
+    });
+
+    it('rejects pay on a cancelled order', async () => {
+      const id = await createOrder();
+      await request(getApp()).put(`/api/orders/${id}/cancel`);
+      const res = await request(getApp()).put(`/api/orders/${id}/pay`);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('已取消');
+    });
+
+    it('rejects cancel after payment (must go through refund, not in scope)', async () => {
+      const id = await createOrder();
+      await request(getApp()).put(`/api/orders/${id}/pay`);
+      const res = await request(getApp()).put(`/api/orders/${id}/cancel`);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('只能取消待支付');
+    });
+
+    it('rejects pay on completed order (idempotency)', async () => {
+      const id = await createOrder();
+      await request(getApp()).put(`/api/orders/${id}/pay`);
+      await request(getApp()).put(`/api/orders/${id}/ship`);
+      await request(getApp()).put(`/api/orders/${id}/confirm`);
+      const res = await request(getApp()).put(`/api/orders/${id}/pay`);
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 404 for unknown order on all transitions', async () => {
+      for (const action of ['pay', 'ship', 'confirm']) {
+        const res = await request(getApp()).put(`/api/orders/99999/${action}`);
+        expect(res.status).toBe(404);
+      }
+    });
+
+    it('does not restore stock on forward transitions', async () => {
+      const id = await createOrder();
+      const stockBefore = Number(
+        (await Product.findByPk(data.products[0].id))!.get('stock'),
+      );
+
+      await request(getApp()).put(`/api/orders/${id}/pay`);
+      await request(getApp()).put(`/api/orders/${id}/ship`);
+      await request(getApp()).put(`/api/orders/${id}/confirm`);
+
+      const stockAfter = Number(
+        (await Product.findByPk(data.products[0].id))!.get('stock'),
+      );
+      expect(stockAfter).toBe(stockBefore);
+    });
+  });
 });

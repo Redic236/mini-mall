@@ -1,5 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { cancelOrder, createOrder, fetchOrder, fetchOrders } from '@/services/order';
+import {
+  cancelOrder,
+  confirmOrder,
+  createOrder,
+  fetchOrder,
+  fetchOrders,
+  payOrder,
+  shipOrder,
+} from '@/services/order';
 import type { Order, OrderStatus } from '@/types';
 
 interface OrderState {
@@ -24,14 +32,24 @@ export const submitOrder = createAsyncThunk(
     createOrder(payload.addressId, payload.cartItemIds),
 );
 
-export const cancelOrderThunk = createAsyncThunk(
-  'orders/cancel',
-  async (id: number, { dispatch, getState }) => {
-    await cancelOrder(id);
-    const state = getState() as { orders: OrderState };
-    await dispatch(loadOrders(state.orders.statusFilter ?? undefined));
-  },
-);
+function makeTransitionThunk(
+  name: string,
+  action: (id: number) => Promise<Order>,
+): ReturnType<typeof createAsyncThunk<void, number, { state: { orders: OrderState } }>> {
+  return createAsyncThunk<void, number, { state: { orders: OrderState } }>(
+    `orders/${name}`,
+    async (id, { dispatch, getState }) => {
+      await action(id);
+      const state = getState();
+      await dispatch(loadOrders(state.orders.statusFilter ?? undefined));
+    },
+  );
+}
+
+export const cancelOrderThunk = makeTransitionThunk('cancel', cancelOrder);
+export const payOrderThunk = makeTransitionThunk('pay', payOrder);
+export const shipOrderThunk = makeTransitionThunk('ship', shipOrder);
+export const confirmOrderThunk = makeTransitionThunk('confirm', confirmOrder);
 
 const slice = createSlice({
   name: 'orders',
