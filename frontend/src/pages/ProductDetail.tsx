@@ -6,6 +6,7 @@ import {
   Divider,
   InputNumber,
   Rate,
+  Result,
   Skeleton,
   Space,
   Typography,
@@ -27,12 +28,30 @@ export default function ProductDetail(): JSX.Element {
   const { user } = useAppSelector((s) => s.auth);
   const [quantity, setQuantity] = useState(1);
 
+  const productId = id === undefined ? NaN : Number(id);
+  const isValidId = Number.isInteger(productId) && productId > 0;
+
   useEffect(() => {
-    if (id) void dispatch(loadProduct(Number(id)));
+    if (isValidId) void dispatch(loadProduct(productId));
     return () => {
       dispatch(clearCurrent());
     };
-  }, [id, dispatch]);
+  }, [productId, isValidId, dispatch]);
+
+  if (!isValidId) {
+    return (
+      <Result
+        status="404"
+        title="商品不存在"
+        subTitle="该商品链接无效或已被下架"
+        extra={
+          <Button type="primary" onClick={() => navigate('/')}>
+            返回首页
+          </Button>
+        }
+      />
+    );
+  }
 
   if (!current) {
     return (
