@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { appConfig } from './config/app';
 import { sequelize, testDbConnection } from './config/database';
 import './models';
+import { startExpiryScheduler, stopExpiryScheduler } from './jobs/expiryScheduler';
 import { logger } from './utils/logger';
 
 async function bootstrap(): Promise<void> {
@@ -18,8 +19,15 @@ async function bootstrap(): Promise<void> {
     logger.info(`Server listening on http://localhost:${appConfig.port}`);
   });
 
+  // Background: auto-cancel 待支付 orders past the payment window.
+  // Tests drive expiry directly by calling the service; skip here.
+  if (process.env.NODE_ENV !== 'test') {
+    startExpiryScheduler();
+  }
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`Received ${signal}, shutting down`);
+    stopExpiryScheduler();
     await sequelize.close();
     process.exit(0);
   };

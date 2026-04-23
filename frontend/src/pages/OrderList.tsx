@@ -12,6 +12,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { ORDER_STATUS_VALUES, type Order, type OrderStatus } from '@/types';
 import { formatCNY } from '@/utils/format';
+import OrderCountdown from '@/components/OrderCountdown';
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   待支付: 'orange',
@@ -126,9 +127,10 @@ export default function OrderList(): JSX.Element {
               <List.Item key={order.id} actions={actions.length > 0 ? actions : undefined}>
                 <List.Item.Meta
                   title={
-                    <Space>
+                    <Space wrap size={8}>
                       <span>单号 {order.orderNo}</span>
                       <Tag color={STATUS_COLOR[order.status]}>{order.status}</Tag>
+                      {order.status === '待支付' && <OrderCountdown createdAt={order.createdAt} />}
                     </Space>
                   }
                   description={

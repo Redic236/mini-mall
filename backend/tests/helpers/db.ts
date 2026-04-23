@@ -1,5 +1,5 @@
 import { sequelize } from '../../src/config/database';
-import { Address, Cart, Order, OrderItem, Product, User } from '../../src/models';
+import { Address, Cart, Order, OrderItem, ORDER_STATUS, Product, User } from '../../src/models';
 import { hashPassword } from '../../src/utils/password';
 
 export async function truncateAll(): Promise<void> {
@@ -59,4 +59,4 @@ export async function seed(options: SeedOptions = { products: true, address: tru
   return { user, products, address };
 }
 
-export { Address, Cart, Order, OrderItem, Product, User };
+export { Address, Cart, Order, OrderItem, ORDER_STATUS, Product, User };

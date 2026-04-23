@@ -6,6 +6,7 @@ import { sequelize } from '../config/database';
 import { HttpError } from '../utils/apiResponse';
 import { generateUniqueOrderNo } from '../utils/orderNo';
 import { audit } from '../utils/audit';
+import { logger } from '../utils/logger';
 
 export async function listOrders(userId: number, status?: OrderStatus): Promise<Order[]> {
   const where: Record<string, unknown> = { userId };
@@ -143,11 +144,69 @@ export async function createOrderFromCart(
   });
 }
 
+type CancelReason = 'user' | 'expired';
+
+/**
+ * Shared cancel-with-stock-restore. Caller loads `order` under `transaction`
+ * with items, verifies status === PENDING, and holds the order row lock.
+ * Products referenced by the items are locked FOR UPDATE here before stock
+ * is returned.
+ */
+async function cancelPendingInTxn(
+  order: Order,
+  transaction: Transaction,
+  auditDetails: { userId: number | null; reason: CancelReason },
+): Promise<Order> {
+  const items = (order.get({ plain: true }) as Order & { items?: OrderItem[] }).items ?? [];
+  const productIds = items.map((it) => it.productId);
+
+  const lockedProducts = await Product.findAll({
+    where: { id: { [Op.in]: productIds } },
+    lock: transaction.LOCK.UPDATE,
+    transaction,
+  });
+  const productMap = new Map<number, Product>();
+  for (const p of lockedProducts) productMap.set(Number(p.get('id')), p);
+
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    if (product) {
+      const currentStock = Number(product.get('stock'));
+      product.set('stock', currentStock + Number(item.quantity));
+      await product.save({ transaction });
+    }
+  }
+
+  order.set('status', ORDER_STATUS.CANCELLED);
+  await order.save({ transaction });
+  await order.reload({
+    include: [
+      { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
+      { model: Address, as: 'address' },
+    ],
+    transaction,
+  });
+  audit({
+    event: 'order.cancel',
+    entity: 'order',
+    entityId: Number(order.get('id')),
+    details: {
+      orderNo: order.get('orderNo'),
+      restoredProductIds: productIds,
+      ...auditDetails,
+    },
+  });
+  return order;
+}
+
 export async function cancelOrder(userId: number, id: number): Promise<Order> {
   return sequelize.transaction(async (t) => {
+    // Lock the order row so a concurrent expiry / transition can't squeeze
+    // in between our status check and save.
     const order = await Order.findOne({
       where: { id, userId },
       include: [{ model: OrderItem, as: 'items' }],
+      lock: t.LOCK.UPDATE,
       transaction: t,
     });
     if (!order) throw new HttpError(404, '订单不存在');
@@ -156,44 +215,49 @@ export async function cancelOrder(userId: number, id: number): Promise<Order> {
     if (status !== ORDER_STATUS.PENDING) {
       throw new HttpError(400, '只能取消待支付的订单');
     }
-
-    const items = (order.get({ plain: true }) as Order & { items?: OrderItem[] }).items ?? [];
-    const productIds = items.map((it) => it.productId);
-
-    const lockedProducts = await Product.findAll({
-      where: { id: { [Op.in]: productIds } },
-      lock: t.LOCK.UPDATE,
-      transaction: t,
-    });
-    const productMap = new Map<number, Product>();
-    for (const p of lockedProducts) productMap.set(Number(p.get('id')), p);
-
-    for (const item of items) {
-      const product = productMap.get(item.productId);
-      if (product) {
-        const currentStock = Number(product.get('stock'));
-        product.set('stock', currentStock + Number(item.quantity));
-        await product.save({ transaction: t });
-      }
-    }
-
-    order.set('status', ORDER_STATUS.CANCELLED);
-    await order.save({ transaction: t });
-    await order.reload({
-      include: [
-        { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
-        { model: Address, as: 'address' },
-      ],
-      transaction: t,
-    });
-    audit({
-      event: 'order.cancel',
-      entity: 'order',
-      entityId: id,
-      details: { userId, orderNo: order.get('orderNo'), restoredProductIds: productIds },
-    });
-    return order;
+    return cancelPendingInTxn(order, t, { userId, reason: 'user' });
   });
+}
+
+/**
+ * Auto-cancel pending orders created before `cutoff`. Returns the ids of
+ * orders actually cancelled — a user may pay in the small window between
+ * candidate selection and inner lock acquisition, in which case that order
+ * is skipped. Per-order errors are logged so one bad row can't stall the
+ * scheduler.
+ */
+export async function expirePendingOrders(cutoff: Date): Promise<number[]> {
+  const candidates = await Order.findAll({
+    where: {
+      status: ORDER_STATUS.PENDING,
+      createdAt: { [Op.lt]: cutoff },
+    },
+    attributes: ['id'],
+  });
+
+  const cancelled: number[] = [];
+  for (const row of candidates) {
+    const id = Number(row.get('id'));
+    try {
+      await sequelize.transaction(async (t) => {
+        const order = await Order.findOne({
+          where: { id },
+          include: [{ model: OrderItem, as: 'items' }],
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!order || order.get('status') !== ORDER_STATUS.PENDING) return;
+        await cancelPendingInTxn(order, t, { userId: null, reason: 'expired' });
+        cancelled.push(id);
+      });
+    } catch (err) {
+      logger.error('Failed to expire order', {
+        id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return cancelled;
 }
 
 // Allowed forward transitions for non-destructive state changes. Cancellation
@@ -213,7 +277,11 @@ async function transitionOrder(
   auditEvent: string,
 ): Promise<Order> {
   return sequelize.transaction(async (t) => {
-    const order = await Order.findOne({ where: { id, userId }, transaction: t });
+    const order = await Order.findOne({
+      where: { id, userId },
+      lock: t.LOCK.UPDATE,
+      transaction: t,
+    });
     if (!order) throw new HttpError(404, '订单不存在');
 
     const current = order.get('status') as OrderStatus;
