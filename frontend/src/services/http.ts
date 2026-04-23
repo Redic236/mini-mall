@@ -3,6 +3,18 @@ import { message } from 'antd';
 import type { ApiResponse, PagedResult } from '@/types';
 import { clearAuth, getStoredToken, notifyUnauthorized } from './tokenStore';
 
+// Extend axios config to let call-sites opt out of the interceptor's default
+// toast. Pages that render their own empty/error state (e.g. recommendations,
+// shipment timeline) want the raw rejection without an extra floating banner.
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipErrorToast?: boolean;
+  }
+  export interface InternalAxiosRequestConfig {
+    skipErrorToast?: boolean;
+  }
+}
+
 export const http = axios.create({
   baseURL: '/api',
   timeout: 10_000,
@@ -18,21 +30,41 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+// Throttle 401 toasts. When a token expires, every in-flight request 401s in
+// quick succession and the naive implementation stacks a toast per request.
+// Show at most one "登录已过期" toast per window.
+const UNAUTHORIZED_TOAST_WINDOW_MS = 3_000;
+let lastUnauthorizedToastAt = 0;
+
+function showUnauthorizedToastOnce(): void {
+  const now = Date.now();
+  if (now - lastUnauthorizedToastAt < UNAUTHORIZED_TOAST_WINDOW_MS) return;
+  lastUnauthorizedToastAt = now;
+  void message.warning('登录已过期，请重新登录');
+}
+
 http.interceptors.response.use(
   <T,>(res: AxiosResponse<ApiResponse<T>>) => {
     if (res.data && res.data.success === false) {
-      message.error(res.data.message ?? '请求失败');
+      if (!res.config.skipErrorToast) {
+        void message.error(res.data.message ?? '请求失败');
+      }
       return Promise.reject(new Error(res.data.message ?? 'Request failed'));
     }
     return res;
   },
   (err: AxiosError<ApiResponse<null>>) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status;
+    if (status === 401) {
       clearAuth();
       notifyUnauthorized();
+      if (!err.config?.skipErrorToast) showUnauthorizedToastOnce();
+      return Promise.reject(err);
     }
-    const msg = err.response?.data?.message ?? err.message ?? '网络错误';
-    message.error(msg);
+    if (!err.config?.skipErrorToast) {
+      const msg = err.response?.data?.message ?? err.message ?? '网络错误';
+      void message.error(msg);
+    }
     return Promise.reject(err);
   },
 );

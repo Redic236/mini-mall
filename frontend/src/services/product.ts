@@ -28,9 +28,12 @@ export interface ProductRecommendation {
 }
 
 export async function fetchRecommendations(id: number, limit = 6): Promise<ProductRecommendation[]> {
+  // Recommendations are a nice-to-have; failures fall back to hiding the rail
+  // in the component. No user-facing toast for this.
   return unwrap<ProductRecommendation[]>(
     http.get<ApiResponse<ProductRecommendation[]>>(`/products/${id}/recommendations`, {
       params: { limit },
+      skipErrorToast: true,
     }),
   );
 }

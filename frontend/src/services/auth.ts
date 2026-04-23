@@ -21,7 +21,10 @@ export async function login(input: LoginInput): Promise<AuthResult> {
 }
 
 export async function fetchMe(): Promise<User> {
-  return unwrap<User>(http.get<ApiResponse<User>>('/auth/me'));
+  // App-boot session validation: a 401 here just means "no valid token",
+  // which authSlice handles by clearing storage. Don't let the global
+  // interceptor toast the user with a scary "登录已过期" on first visit.
+  return unwrap<User>(http.get<ApiResponse<User>>('/auth/me', { skipErrorToast: true }));
 }
 
 export async function uploadAvatar(file: File): Promise<User> {
