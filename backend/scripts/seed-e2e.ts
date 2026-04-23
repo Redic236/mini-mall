@@ -37,11 +37,27 @@ async function main(): Promise<void> {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
 
+  // Three named fixtures every spec may depend on. These land at ids 1-3 so
+  // specs can find them by name or (if they know the seed order) by index.
   await Product.bulkCreate([
     { name: 'E2E T-Shirt', price: 59, stock: 100, description: 'apparel fixture', category: '服装', image: null },
     { name: 'E2E Jeans', price: 199, stock: 50, description: 'apparel fixture', category: '服装', image: null },
     { name: 'E2E Sneakers', price: 399, stock: 10, description: 'footwear fixture', category: '鞋履', image: null },
   ]);
+
+  // Twenty filler products so the default page size (20) spills onto a
+  // second page. Pagination specs assert on this: page 1 renders 20 rows,
+  // page 2 renders the remainder (3 named + 20 filler = 23 total).
+  await Product.bulkCreate(
+    Array.from({ length: 20 }, (_, i) => ({
+      name: `E2E Filler ${String(i + 1).padStart(2, '0')}`,
+      price: 10 + i,
+      stock: 50,
+      description: 'pagination filler',
+      category: '填充',
+      image: null,
+    })),
+  );
 
   // Fixed admin account for admin-flavoured specs. Credentials are public
   // in the E2E helpers — this DB is thrown away per run.

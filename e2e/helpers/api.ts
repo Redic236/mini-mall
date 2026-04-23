@@ -117,9 +117,9 @@ export async function listProducts(
   return body.data ?? [];
 }
 
-interface CartAddResponse {
+interface CartSummaryResponse {
   success: boolean;
-  data: { id: number } | null;
+  data: { items: Array<{ id: number; productId: number; quantity: number }> } | null;
   message: string | null;
 }
 
@@ -133,11 +133,15 @@ export async function addToCart(
     data: { productId, quantity },
     headers: { Authorization: `Bearer ${token}` },
   });
-  const body = (await res.json()) as CartAddResponse;
+  const body = (await res.json()) as CartSummaryResponse;
   if (!body.success || !body.data) {
     throw new Error(`addToCart failed: ${body.message ?? res.status()}`);
   }
-  return body.data.id;
+  // POST /cart now returns the whole CartSummary, not a single row. Find the
+  // just-added line by productId.
+  const item = body.data.items.find((it) => it.productId === productId);
+  if (!item) throw new Error(`addToCart: productId ${productId} missing from returned cart`);
+  return item.id;
 }
 
 interface OrderResponse {
@@ -198,5 +202,70 @@ export async function adminShipOrder(
   if (res.status() !== 200) {
     const body = await res.text();
     throw new Error(`adminShipOrder failed: ${res.status()} ${body}`);
+  }
+}
+
+export interface CouponInput {
+  code: string;
+  name: string;
+  type: 'fixed' | 'percentage';
+  value: number;
+  minOrderAmount?: number;
+  totalQuantity?: number | null;
+  perUserLimit?: number;
+  startsAt?: string;
+  expiresAt?: string;
+}
+
+/**
+ * Create a coupon via the admin API. Defaults keep the coupon active and
+ * in-window so specs don't have to fill out the full zod shape.
+ */
+export async function createCouponAsAdmin(
+  request: APIRequestContext,
+  adminToken: string,
+  input: CouponInput,
+): Promise<void> {
+  const now = new Date();
+  const later = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const res = await request.post(`${API_BASE}/api/admin/coupons`, {
+    data: {
+      minOrderAmount: 0,
+      totalQuantity: null,
+      perUserLimit: 1,
+      startsAt: (input.startsAt ?? new Date(now.getTime() - 60_000).toISOString()),
+      expiresAt: input.expiresAt ?? later.toISOString(),
+      ...input,
+    },
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  if (res.status() !== 201) {
+    const body = await res.text();
+    throw new Error(`createCouponAsAdmin failed: ${res.status()} ${body}`);
+  }
+}
+
+interface ShipmentEventInput {
+  status: 'picked_up' | 'in_transit' | 'arrived' | 'out_for_delivery' | 'delivered';
+  location?: string | null;
+  note?: string | null;
+}
+
+export async function addShipmentEvent(
+  request: APIRequestContext,
+  adminToken: string,
+  orderId: number,
+  input: ShipmentEventInput,
+): Promise<void> {
+  const res = await request.post(
+    `${API_BASE}/api/admin/orders/${orderId}/shipment-events`,
+    {
+      data: input,
+      headers: { Authorization: `Bearer ${adminToken}` },
+    },
+  );
+  if (res.status() !== 201) {
+    const body = await res.text();
+    throw new Error(`addShipmentEvent failed: ${res.status()} ${body}`);
   }
 }

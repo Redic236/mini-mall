@@ -29,7 +29,10 @@ test.describe('Admin', () => {
 
     await page.getByRole('menuitem', { name: '商品管理' }).click();
     await expect(page.getByRole('heading', { name: '商品管理' })).toBeVisible();
-    await expect(page.getByText('E2E T-Shirt')).toBeVisible();
+    // Admin products page orders by id DESC — with 23 seeded rows the named
+    // fixtures (ids 1-3) are on page 2; assert on a filler that's guaranteed
+    // to sit on page 1.
+    await expect(page.getByText('E2E Filler 20')).toBeVisible();
   });
 
   test('admin can create and delete a product', async ({ page, request }) => {
