@@ -10,7 +10,10 @@ async function addToCart(me: AuthedUser, productId: number, quantity: number): P
     .post('/api/cart')
     .set(...me.authHeader)
     .send({ productId, quantity });
-  return res.body.data.id as number;
+  const items = (res.body.data.items ?? []) as Array<{ id: number; productId: number }>;
+  const match = items.find((it) => it.productId === productId);
+  if (!match) throw new Error(`addToCart: productId ${productId} not in cart`);
+  return match.id;
 }
 
 async function placeOrder(me: AuthedUser, data: SeededData, cartItemIds: number[]): Promise<number> {

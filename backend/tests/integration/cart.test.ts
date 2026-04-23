@@ -38,13 +38,15 @@ describe('Cart API', () => {
   });
 
   describe('POST /api/cart', () => {
-    it('creates a new cart item', async () => {
+    it('creates a new cart item and returns a cart summary', async () => {
       const res = await request(getApp())
         .post('/api/cart')
         .set(...me.authHeader)
         .send({ productId: data.products[0].id, quantity: 2 });
       expect(res.status).toBe(201);
-      expect(res.body.data.quantity).toBe(2);
+      expect(res.body.data.items).toHaveLength(1);
+      expect(res.body.data.items[0].quantity).toBe(2);
+      expect(res.body.data.totalQuantity).toBe(2);
     });
 
     it('accumulates quantity for existing product', async () => {
@@ -96,16 +98,18 @@ describe('Cart API', () => {
   });
 
   describe('PUT /api/cart/:id', () => {
-    it('updates quantity', async () => {
+    it('updates quantity and returns the refreshed summary', async () => {
       const add = await request(getApp())
         .post('/api/cart')
         .set(...me.authHeader)
         .send({ productId: data.products[0].id, quantity: 1 });
-      const id = add.body.data.id;
+      const id = add.body.data.items[0].id;
 
       const res = await request(getApp()).put(`/api/cart/${id}`).set(...me.authHeader).send({ quantity: 5 });
       expect(res.status).toBe(200);
-      expect(res.body.data.quantity).toBe(5);
+      expect(res.body.data.items).toHaveLength(1);
+      expect(res.body.data.items[0].quantity).toBe(5);
+      expect(res.body.data.totalQuantity).toBe(5);
     });
 
     it('rejects quantity exceeding stock', async () => {
@@ -113,7 +117,7 @@ describe('Cart API', () => {
         .post('/api/cart')
         .set(...me.authHeader)
         .send({ productId: data.products[2].id, quantity: 1 });
-      const id = add.body.data.id;
+      const id = add.body.data.items[0].id;
 
       const res = await request(getApp()).put(`/api/cart/${id}`).set(...me.authHeader).send({ quantity: 999 });
       expect(res.status).toBe(400);
@@ -127,18 +131,17 @@ describe('Cart API', () => {
   });
 
   describe('DELETE /api/cart/:id', () => {
-    it('removes the cart item', async () => {
+    it('removes the cart item and returns the refreshed summary', async () => {
       const add = await request(getApp())
         .post('/api/cart')
         .set(...me.authHeader)
         .send({ productId: data.products[0].id, quantity: 1 });
-      const id = add.body.data.id;
+      const id = add.body.data.items[0].id;
 
       const res = await request(getApp()).delete(`/api/cart/${id}`).set(...me.authHeader);
       expect(res.status).toBe(200);
-
-      const list = await request(getApp()).get('/api/cart').set(...me.authHeader);
-      expect(list.body.data.items).toHaveLength(0);
+      expect(res.body.data.items).toHaveLength(0);
+      expect(res.body.data.totalQuantity).toBe(0);
     });
 
     it('returns 404 when item missing', async () => {

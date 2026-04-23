@@ -28,7 +28,11 @@ export async function listCart(userId: number): Promise<CartSummary> {
   return { items, totalPrice: Number(totalPrice.toFixed(2)), totalQuantity };
 }
 
-export async function addToCart(userId: number, productId: number, quantity: number): Promise<Cart> {
+export async function addToCart(
+  userId: number,
+  productId: number,
+  quantity: number,
+): Promise<CartSummary> {
   if (quantity <= 0) throw new HttpError(400, '数量必须大于 0');
   const product = await Product.findByPk(productId);
   if (!product) throw new HttpError(404, '商品不存在');
@@ -42,24 +46,24 @@ export async function addToCart(userId: number, productId: number, quantity: num
   if (existing) {
     existing.set('quantity', nextQuantity);
     await existing.save();
-    await existing.reload({ include: [{ model: Product, as: 'product' }] });
     audit({
       event: 'cart.update',
       entity: 'cart',
       entityId: existing.get('id') as number,
       details: { userId, productId, quantity: nextQuantity },
     });
-    return existing;
+  } else {
+    const created = await Cart.create({ userId, productId, quantity });
+    audit({
+      event: 'cart.add',
+      entity: 'cart',
+      entityId: created.get('id') as number,
+      details: { userId, productId, quantity },
+    });
   }
-  const created = await Cart.create({ userId, productId, quantity });
-  await created.reload({ include: [{ model: Product, as: 'product' }] });
-  audit({
-    event: 'cart.add',
-    entity: 'cart',
-    entityId: created.get('id') as number,
-    details: { userId, productId, quantity },
-  });
-  return created;
+  // Return the full cart snapshot so the client can refresh state in one
+  // roundtrip instead of chasing the mutation with an immediate GET /cart.
+  return listCart(userId);
 }
 
 async function findOwnedCartItem(userId: number, id: number): Promise<Cart> {
@@ -71,7 +75,11 @@ async function findOwnedCartItem(userId: number, id: number): Promise<Cart> {
   return item;
 }
 
-export async function updateCartQuantity(userId: number, id: number, quantity: number): Promise<Cart> {
+export async function updateCartQuantity(
+  userId: number,
+  id: number,
+  quantity: number,
+): Promise<CartSummary> {
   if (quantity <= 0) throw new HttpError(400, '数量必须大于 0');
   const item = await findOwnedCartItem(userId, id);
 
@@ -82,13 +90,13 @@ export async function updateCartQuantity(userId: number, id: number, quantity: n
 
   item.set('quantity', quantity);
   await item.save();
-  await item.reload({ include: [{ model: Product, as: 'product' }] });
   audit({ event: 'cart.update', entity: 'cart', entityId: id, details: { userId, quantity } });
-  return item;
+  return listCart(userId);
 }
 
-export async function removeFromCart(userId: number, id: number): Promise<void> {
+export async function removeFromCart(userId: number, id: number): Promise<CartSummary> {
   const item = await findOwnedCartItem(userId, id);
   await item.destroy();
   audit({ event: 'cart.remove', entity: 'cart', entityId: id, details: { userId } });
+  return listCart(userId);
 }

@@ -1,6 +1,6 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { addCart, fetchCart, removeCart, updateCart } from '@/services/cart';
-import type { CartItem } from '@/types';
+import type { CartItem, CartSummary } from '@/types';
 
 interface CartState {
   items: CartItem[];
@@ -13,29 +13,26 @@ const initialState: CartState = { items: [], totalPrice: 0, totalQuantity: 0, lo
 
 export const loadCart = createAsyncThunk('cart/load', async () => fetchCart());
 
+// Mutation thunks now return the fresh CartSummary directly — no second
+// GET /cart is needed. The extraReducer below folds the payload into state.
 export const addToCart = createAsyncThunk(
   'cart/add',
-  async (payload: { productId: number; quantity: number }, { dispatch }) => {
-    await addCart(payload.productId, payload.quantity);
-    await dispatch(loadCart());
-  },
+  async (payload: { productId: number; quantity: number }) =>
+    addCart(payload.productId, payload.quantity),
 );
 
 export const updateCartItem = createAsyncThunk(
   'cart/update',
-  async (payload: { id: number; quantity: number }, { dispatch }) => {
-    await updateCart(payload.id, payload.quantity);
-    await dispatch(loadCart());
-  },
+  async (payload: { id: number; quantity: number }) => updateCart(payload.id, payload.quantity),
 );
 
-export const removeCartItem = createAsyncThunk(
-  'cart/remove',
-  async (id: number, { dispatch }) => {
-    await removeCart(id);
-    await dispatch(loadCart());
-  },
-);
+export const removeCartItem = createAsyncThunk('cart/remove', async (id: number) => removeCart(id));
+
+function applySummary(state: CartState, summary: CartSummary): void {
+  state.items = summary.items;
+  state.totalPrice = summary.totalPrice;
+  state.totalQuantity = summary.totalQuantity;
+}
 
 const slice = createSlice({
   name: 'cart',
@@ -46,14 +43,21 @@ const slice = createSlice({
       .addCase(loadCart.pending, (state) => {
         state.loading = true;
       })
-      .addCase(loadCart.fulfilled, (state, action) => {
+      .addCase(loadCart.fulfilled, (state, action: PayloadAction<CartSummary>) => {
         state.loading = false;
-        state.items = action.payload.items;
-        state.totalPrice = action.payload.totalPrice;
-        state.totalQuantity = action.payload.totalQuantity;
+        applySummary(state, action.payload);
       })
       .addCase(loadCart.rejected, (state) => {
         state.loading = false;
+      })
+      .addCase(addToCart.fulfilled, (state, action: PayloadAction<CartSummary>) => {
+        applySummary(state, action.payload);
+      })
+      .addCase(updateCartItem.fulfilled, (state, action: PayloadAction<CartSummary>) => {
+        applySummary(state, action.payload);
+      })
+      .addCase(removeCartItem.fulfilled, (state, action: PayloadAction<CartSummary>) => {
+        applySummary(state, action.payload);
       });
   },
 });

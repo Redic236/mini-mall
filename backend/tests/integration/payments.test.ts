@@ -7,7 +7,10 @@ import { signPayment } from '../../src/utils/paymentSignature';
 
 async function addCartItem(authHeader: [string, string], productId: number, quantity: number): Promise<number> {
   const res = await request(getApp()).post('/api/cart').set(...authHeader).send({ productId, quantity });
-  return res.body.data.id as number;
+  const items = (res.body.data.items ?? []) as Array<{ id: number; productId: number }>;
+  const match = items.find((it) => it.productId === productId);
+  if (!match) throw new Error(`addCartItem: productId ${productId} not in cart`);
+  return match.id;
 }
 
 async function placeOrder(me: AuthedUser, data: SeededData, cartItemId: number): Promise<number> {

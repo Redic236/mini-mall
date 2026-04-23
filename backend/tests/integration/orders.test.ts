@@ -6,7 +6,12 @@ import { createAdmin, createUser, makeAuthed, type AuthedUser } from '../helpers
 
 async function addToCart(authHeader: [string, string], productId: number, quantity: number): Promise<number> {
   const res = await request(getApp()).post('/api/cart').set(...authHeader).send({ productId, quantity });
-  return res.body.data.id as number;
+  // POST /cart now returns the full CartSummary. Find the just-added line by
+  // productId rather than trying to introspect a single-item envelope.
+  const items = (res.body.data.items ?? []) as Array<{ id: number; productId: number }>;
+  const match = items.find((it) => it.productId === productId);
+  if (!match) throw new Error(`addToCart: productId ${productId} not in returned cart`);
+  return match.id;
 }
 
 describe('Orders API', () => {

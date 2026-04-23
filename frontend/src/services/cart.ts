@@ -1,18 +1,22 @@
 import { http, unwrap } from './http';
-import type { ApiResponse, CartItem, CartSummary } from '@/types';
+import type { ApiResponse, CartSummary } from '@/types';
 
 export async function fetchCart(): Promise<CartSummary> {
   return unwrap<CartSummary>(http.get<ApiResponse<CartSummary>>('/cart'));
 }
 
-export async function addCart(productId: number, quantity: number): Promise<CartItem> {
-  return unwrap<CartItem>(http.post<ApiResponse<CartItem>>('/cart', { productId, quantity }));
+// All mutations return the full refreshed cart summary so the client can
+// update state in one roundtrip instead of chasing a separate GET /cart.
+export async function addCart(productId: number, quantity: number): Promise<CartSummary> {
+  return unwrap<CartSummary>(
+    http.post<ApiResponse<CartSummary>>('/cart', { productId, quantity }),
+  );
 }
 
-export async function updateCart(id: number, quantity: number): Promise<CartItem> {
-  return unwrap<CartItem>(http.put<ApiResponse<CartItem>>(`/cart/${id}`, { quantity }));
+export async function updateCart(id: number, quantity: number): Promise<CartSummary> {
+  return unwrap<CartSummary>(http.put<ApiResponse<CartSummary>>(`/cart/${id}`, { quantity }));
 }
 
-export async function removeCart(id: number): Promise<void> {
-  await http.delete<ApiResponse<null>>(`/cart/${id}`);
+export async function removeCart(id: number): Promise<CartSummary> {
+  return unwrap<CartSummary>(http.delete<ApiResponse<CartSummary>>(`/cart/${id}`));
 }

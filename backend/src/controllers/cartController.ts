@@ -21,8 +21,8 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
 export async function add(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = parseOrThrow(addCartBodySchema, req.body);
-    const item = await cartService.addToCart(getUserId(req), body.productId, body.quantity);
-    res.status(201).json(ok(item));
+    const summary = await cartService.addToCart(getUserId(req), body.productId, body.quantity);
+    res.status(201).json(ok(summary));
   } catch (err) {
     next(err);
   }
@@ -32,8 +32,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
   try {
     const id = parseOrThrow(idSchema, req.params.id, 'id');
     const body = parseOrThrow(updateCartBodySchema, req.body);
-    const item = await cartService.updateCartQuantity(getUserId(req), id, body.quantity);
-    res.json(ok(item));
+    const summary = await cartService.updateCartQuantity(getUserId(req), id, body.quantity);
+    res.json(ok(summary));
   } catch (err) {
     next(err);
   }
@@ -42,8 +42,8 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const id = parseOrThrow(idSchema, req.params.id, 'id');
-    await cartService.removeFromCart(getUserId(req), id);
-    res.json(ok(null, '已删除'));
+    const summary = await cartService.removeFromCart(getUserId(req), id);
+    res.json(ok(summary, '已删除'));
   } catch (err) {
     next(err);
   }
