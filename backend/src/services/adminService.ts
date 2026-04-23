@@ -142,17 +142,24 @@ export async function listOrders(filter: AdminOrderFilter): Promise<{
   if (filter.status) where.status = filter.status;
 
   const offset = (filter.page - 1) * filter.limit;
-  const { rows, count } = await Order.findAndCountAll({
-    where,
-    include: [
-      { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
-      { model: Address, as: 'address' },
-    ],
-    order: [['id', 'DESC']],
-    offset,
-    limit: filter.limit,
-    distinct: true,
-  });
+  // Split count from find. findAndCountAll + distinct:true forces MySQL to
+  // build a DISTINCT set over the full join (orders × items × products ×
+  // addresses) just to return the count, which at N line items per order
+  // multiplies the work. A plain Order.count over the same where is one
+  // covering-index scan, and it runs in parallel with the paginated find.
+  const [count, rows] = await Promise.all([
+    Order.count({ where }),
+    Order.findAll({
+      where,
+      include: [
+        { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
+        { model: Address, as: 'address' },
+      ],
+      order: [['id', 'DESC']],
+      offset,
+      limit: filter.limit,
+    }),
+  ]);
 
   return { items: rows, total: count, page: filter.page, limit: filter.limit };
 }

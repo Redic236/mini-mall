@@ -40,12 +40,18 @@ export async function recommendForProduct(
   productId: number,
   limit = 6,
 ): Promise<ProductRecommendation[]> {
+  // Cap the co-occurrence window to a rolling 90 days so the join doesn't
+  // keep dragging in orders from the table's entire history as it grows.
+  // Recency also produces better recommendations — last quarter's co-buys
+  // are more predictive than last year's.
   const rows = await sequelize.query<CoOccurrenceRow>(
     `SELECT oi2.productId AS productId, COUNT(*) AS score
        FROM order_items oi1
        JOIN order_items oi2 ON oi2.orderId = oi1.orderId AND oi2.productId <> oi1.productId
        JOIN orders o ON o.id = oi1.orderId
-      WHERE oi1.productId = :productId AND o.status <> '已取消'
+      WHERE oi1.productId = :productId
+        AND o.status <> '已取消'
+        AND o.createdAt >= DATE_SUB(NOW(), INTERVAL 90 DAY)
       GROUP BY oi2.productId
       ORDER BY score DESC, oi2.productId ASC
       LIMIT :limit`,

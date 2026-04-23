@@ -293,12 +293,22 @@ export async function cancelOrder(userId: number, id: number): Promise<Order> {
   });
 }
 
+// Hard cap on how many orders a single expiry-scheduler tick processes.
+// The scheduler runs every 60s, so a backlog of 6000/hour is easily absorbed
+// without one tick holding dozens of transactions at once and starving normal
+// request traffic. Exported for the test that exercises batching.
+export const EXPIRY_BATCH_LIMIT = 100;
+
 /**
  * Auto-cancel pending orders created before `cutoff`. Returns the ids of
  * orders actually cancelled — a user may pay in the small window between
  * candidate selection and inner lock acquisition, in which case that order
  * is skipped. Per-order errors are logged so one bad row can't stall the
  * scheduler.
+ *
+ * Caps each invocation at `EXPIRY_BATCH_LIMIT` rows. Future ticks drain the
+ * rest; the `status + createdAt` composite index keeps the lookup fast
+ * regardless of how large the pending backlog grows.
  */
 export async function expirePendingOrders(cutoff: Date): Promise<number[]> {
   const candidates = await Order.findAll({
@@ -307,6 +317,8 @@ export async function expirePendingOrders(cutoff: Date): Promise<number[]> {
       createdAt: { [Op.lt]: cutoff },
     },
     attributes: ['id'],
+    order: [['id', 'ASC']],
+    limit: EXPIRY_BATCH_LIMIT,
   });
 
   const cancelled: number[] = [];
