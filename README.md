@@ -99,6 +99,22 @@ npm run test:watch
 npm run test:coverage
 ```
 
+E2E（Playwright + Chromium，冒烟 4 条关键路径：auth / 浏览+搜索 / 下单+状态机 / 评价）：
+
+```bash
+cd e2e
+npm install
+npm run install:browsers     # 首次拉 Chromium（~170MB，一次就好）
+npm test                     # 先 seed mini_mall_e2e，再跑 playwright
+npm run test:ui              # Playwright 交互式 UI 模式
+npm run report               # 看上一次的 HTML 报告
+```
+
+注意：
+- E2E 用独立的 `mini_mall_e2e` 数据库，每次 `npm test` 会被 `pretest` 钩子 force-sync + 种子固定商品（见 [backend/scripts/seed-e2e.ts](backend/scripts/seed-e2e.ts)）。不会碰 `mini_mall` 或 `mini_mall_test`。
+- Playwright 自启 backend（`npm run e2e:dev`）和 frontend（`npm run dev`）。跑前请确保 `3001` 和 `5173` 没被占用（Docker stack 同时起着的话先 `docker compose stop`）。
+- 后端进入 E2E 模式会 bypass rate limiter（`E2E=true` 触发 middleware 绕行），避免多个 spec 连续注册被限速。
+
 ## 数据库迁移
 
 使用 [Umzug](https://github.com/sequelize/umzug)（Sequelize 自家）管理增量 schema 变更，避免"改了 init.sql 但线上已经跑过"的尴尬。
@@ -125,6 +141,7 @@ GitHub Actions 配置在 [.github/workflows/ci.yml](.github/workflows/ci.yml)，
 
 - **backend job**：起 MySQL 8 服务 → `npm ci` → `npm run typecheck` → `npm run test:coverage`，覆盖率作为 artifact 上传
 - **frontend job**：`npm ci` → `npm run typecheck` → `npm test` → `npm run build`，dist 作为 artifact 上传
+- **e2e job**（在 backend/frontend 绿灯后跑）：起 MySQL → 装 3 个包 → `playwright install --with-deps chromium` → `npm test`（Playwright 自己拉起两端）；HTML report 恒定上传，trace 仅失败时上传
 
 本地复现 CI 行为：
 

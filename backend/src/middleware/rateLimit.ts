@@ -4,7 +4,10 @@ import { fail } from '../utils/apiResponse';
 
 const passthrough: RequestHandler = (_req, _res, next) => next();
 
-const isTest = process.env.NODE_ENV === 'test';
+// Bypass rate limiting in test and E2E runs — the auth limiter's 10-per-15min
+// budget would be spent across a dozen specs, producing spurious failures that
+// have nothing to do with the feature under test.
+const isTest = process.env.NODE_ENV === 'test' || process.env.E2E === 'true';
 
 // Global API rate limit: generous enough for normal browsing, blocks scripted abuse.
 export const apiRateLimiter: RequestHandler = isTest

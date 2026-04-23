@@ -29,6 +29,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Playwright
+playwright-report/
+test-results/
+.playwright/
+
 # Misc
 *.swp
 *.swo

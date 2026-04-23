@@ -15,6 +15,8 @@
     "migrate": "tsx scripts/migrate.ts up",
     "migrate:down": "tsx scripts/migrate.ts down",
     "migrate:status": "tsx scripts/migrate.ts status",
+    "e2e:seed": "cross-env DB_NAME=mini_mall_e2e E2E=true tsx scripts/seed-e2e.ts",
+    "e2e:dev": "cross-env DB_NAME=mini_mall_e2e E2E=true tsx watch src/server.ts",
     "verify": "npm run typecheck && npm test",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\""
@@ -41,6 +43,7 @@
     "@types/node": "^20.14.10",
     "@types/supertest": "^7.2.0",
     "@vitest/coverage-v8": "^4.1.5",
+    "cross-env": "^10.1.0",
     "eslint": "^9.7.0",
     "prettier": "^3.3.3",
     "supertest": "^7.2.2",

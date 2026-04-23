@@ -1,0 +1,22 @@
+{
+  "name": "mini-mall-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright end-to-end tests for Mini Mall",
+  "type": "module",
+  "scripts": {
+    "pretest": "npm --prefix ../backend run e2e:seed",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^20.14.10"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
