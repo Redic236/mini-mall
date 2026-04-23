@@ -6,7 +6,7 @@ import type { LoginInput } from '@/services/auth';
 
 export default function Login(): JSX.Element {
   const dispatch = useAppDispatch();
-  const { loading } = useAppSelector((s) => s.auth);
+  const loading = useAppSelector((s) => s.auth.loading);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const redirect = params.get('redirect') ?? '/';

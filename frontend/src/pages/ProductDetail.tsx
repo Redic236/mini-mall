@@ -24,8 +24,8 @@ export default function ProductDetail(): JSX.Element {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { current } = useAppSelector((s) => s.products);
-  const { user } = useAppSelector((s) => s.auth);
+  const current = useAppSelector((s) => s.products.current);
+  const user = useAppSelector((s) => s.auth.user);
   const [quantity, setQuantity] = useState(1);
 
   const productId = id === undefined ? NaN : Number(id);

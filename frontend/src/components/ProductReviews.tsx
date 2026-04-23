@@ -37,7 +37,7 @@ interface ReviewFormValues {
 }
 
 export default function ProductReviews({ productId }: ProductReviewsProps): JSX.Element {
-  const { user } = useAppSelector((s) => s.auth);
+  const user = useAppSelector((s) => s.auth.user);
   const [list, setList] = useState<ReviewListResult | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);

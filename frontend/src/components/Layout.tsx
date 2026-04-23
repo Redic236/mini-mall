@@ -20,7 +20,10 @@ export default function Layout(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((s) => s.auth);
+  // Select the user field directly — the whole auth slice changes on
+  // login / hydrate / avatar upload / initialized flip, but only `user`
+  // affects the header render.
+  const user = useAppSelector((s) => s.auth.user);
 
   const selectedKey =
     NAV_ITEMS.find((item) => item.key !== '/' && location.pathname.startsWith(item.key))?.key ?? '/';

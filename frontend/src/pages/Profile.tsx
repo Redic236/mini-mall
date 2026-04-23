@@ -10,7 +10,7 @@ const ACCEPTED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export default function Profile(): JSX.Element {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((s) => s.auth);
+  const user = useAppSelector((s) => s.auth.user);
   const [uploading, setUploading] = useState(false);
 
   if (!user) return <></>;
