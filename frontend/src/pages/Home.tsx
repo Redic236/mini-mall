@@ -261,7 +261,13 @@ export default function Home(): JSX.Element {
                             src={product.image}
                             style={{ height: 200, width: '100%', objectFit: 'cover', display: 'block' }}
                             loading={eager ? 'eager' : 'lazy'}
-                            fetchPriority={eager ? 'high' : 'auto'}
+                            // React 18 does not recognise the camelCase
+                            // `fetchPriority` prop (added in React 19), so
+                            // spread the HTML-standard lowercase attribute
+                            // via an object. "auto" is the browser default,
+                            // so only emit the attribute when we want the
+                            // LCP hint.
+                            {...(eager ? { fetchpriority: 'high' as const } : {})}
                             decoding="async"
                             width={400}
                             height={200}

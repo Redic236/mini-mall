@@ -31,7 +31,13 @@ export default function App(): JSX.Element {
     <Provider store={store}>
       <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#1677ff' } }}>
         <AuthBootstrap />
-        <RouterProvider router={router} />
+        {/*
+          Opt in early to the v7 behaviour that wraps route state updates in
+          React.startTransition — silences React Router's boot-time
+          "v7_startTransition" future-flag warning and will be the default
+          once we move to v7.
+        */}
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </ConfigProvider>
     </Provider>
   );
