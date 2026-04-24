@@ -78,11 +78,13 @@ export default function ProductDetail(): JSX.Element {
   const rating = Number(current.averageRating ?? 0);
   const reviewCount = Number(current.reviewCount ?? 0);
 
+  const isDirectVisit = location.key === 'default';
+
   const handleBack = (): void => {
     // Prefer history.back when we arrived via an in-app navigation — that
     // restores the home page's filter / pagination / scroll state. On a
     // direct-link visit (location.key === 'default'), just go to /.
-    if (location.key !== 'default') {
+    if (!isDirectVisit) {
       navigate(-1);
     } else {
       navigate('/');
@@ -92,12 +94,12 @@ export default function ProductDetail(): JSX.Element {
   return (
     <div>
       <Button
-        type="text"
+        size="large"
         icon={<ArrowLeftOutlined />}
         onClick={handleBack}
-        style={{ marginBottom: 8, paddingLeft: 0 }}
+        style={{ marginBottom: 16 }}
       >
-        返回
+        {isDirectVisit ? '返回首页' : '返回'}
       </Button>
       <h1 className="page-title">{current.name}</h1>
       <Space align="center" size={12} style={{ marginBottom: 12, flexWrap: 'wrap' }}>
