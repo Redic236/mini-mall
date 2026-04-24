@@ -255,7 +255,27 @@ export default function OrderList(): JSX.Element {
                         {order.city}{order.district} {order.detailAddress}
                       </Typography.Text>
                       <Typography.Text type="secondary">
-                        {order.items?.map((it) => `${it.product?.name ?? ''} × ${it.quantity}`).join(' / ')}
+                        {order.items?.map((it, idx) => {
+                          const name = it.product?.name;
+                          // Guard against snapshot inconsistencies: if the
+                          // product was deleted after the order was placed,
+                          // `it.product` may be null. Render the quantity
+                          // line without a link in that case rather than
+                          // linking to a doomed /products/:id route.
+                          const node = name ? (
+                            <Typography.Link onClick={() => navigate(`/products/${it.productId}`)}>
+                              {name}
+                            </Typography.Link>
+                          ) : (
+                            <span>已下架商品</span>
+                          );
+                          return (
+                            <span key={it.id}>
+                              {idx > 0 && ' / '}
+                              {node} × {it.quantity}
+                            </span>
+                          );
+                        })}
                       </Typography.Text>
                       {(order.status === '已发货' || order.status === '已完成') && (
                         <Collapse
