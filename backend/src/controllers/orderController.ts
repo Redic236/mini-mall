@@ -77,3 +77,26 @@ export async function confirm(req: Request, res: Response, next: NextFunction): 
     next(err);
   }
 }
+
+export async function removeOne(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = parseOrThrow(idSchema, req.params.id, 'id');
+    await orderService.deleteOrderForUser(getUserId(req), id);
+    res.json(ok(null));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeCompleted(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const affected = await orderService.deleteCompletedOrdersForUser(getUserId(req));
+    res.json(ok({ affected }));
+  } catch (err) {
+    next(err);
+  }
+}

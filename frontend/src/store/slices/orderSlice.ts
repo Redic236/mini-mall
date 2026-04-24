@@ -1,8 +1,10 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
+  bulkDeleteCompletedOrders,
   cancelOrder,
   confirmOrder,
   createOrder,
+  deleteOrder,
   fetchOrder,
   fetchOrders,
   payOrder,
@@ -68,6 +70,44 @@ export const cancelOrderThunk = makeTransitionThunk('cancel', cancelOrder);
 export const payOrderThunk = makeTransitionThunk('pay', payOrder);
 // Shipping moved to admin — see services/admin.ts `shipAdminOrder`.
 export const confirmOrderThunk = makeTransitionThunk('confirm', confirmOrder);
+
+// Deleting always returns null, but the transition helper expects a function
+// that resolves Order. Wrap the raw service call so it fits the same "mutate
+// then refresh" pattern as cancel/pay/confirm without abusing the types.
+export const deleteOrderThunk = createAsyncThunk<
+  void,
+  number,
+  { state: { orders: OrderState } }
+>('orders/delete', async (id, { dispatch, getState }) => {
+  await deleteOrder(id);
+  const state = getState().orders;
+  await dispatch(
+    loadOrders({
+      status: state.statusFilter ?? undefined,
+      page: state.page,
+      limit: state.limit,
+    }),
+  );
+});
+
+export const bulkDeleteCompletedThunk = createAsyncThunk<
+  number,
+  void,
+  { state: { orders: OrderState } }
+>('orders/bulkDeleteCompleted', async (_, { dispatch, getState }) => {
+  const { affected } = await bulkDeleteCompletedOrders();
+  const state = getState().orders;
+  // After a bulk clear the current page can end up empty; snap back to page 1
+  // so the user sees the remaining active orders instead of a blank list.
+  await dispatch(
+    loadOrders({
+      status: state.statusFilter ?? undefined,
+      page: 1,
+      limit: state.limit,
+    }),
+  );
+  return affected;
+});
 
 const slice = createSlice({
   name: 'orders',

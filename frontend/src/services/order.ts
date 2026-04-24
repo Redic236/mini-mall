@@ -44,3 +44,13 @@ export async function payOrder(id: number): Promise<Order> {
 export async function confirmOrder(id: number): Promise<Order> {
   return unwrap<Order>(http.put<ApiResponse<Order>>(`/orders/${id}/confirm`));
 }
+
+export async function deleteOrder(id: number): Promise<null> {
+  return unwrap<null>(http.delete<ApiResponse<null>>(`/orders/${id}`));
+}
+
+export async function bulkDeleteCompletedOrders(): Promise<{ affected: number }> {
+  return unwrap<{ affected: number }>(
+    http.delete<ApiResponse<{ affected: number }>>('/orders/bulk/completed'),
+  );
+}

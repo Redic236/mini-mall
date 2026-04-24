@@ -22,8 +22,16 @@ export interface PagedOrders {
   limit: number;
 }
 
+// Statuses the user is allowed to soft-delete from their own list. Active
+// orders (待支付 / 已支付 / 已发货) stay visible because they are still on
+// the merchant's side of the workflow.
+const USER_DELETABLE_STATUSES: readonly OrderStatus[] = [
+  ORDER_STATUS.DONE,
+  ORDER_STATUS.CANCELLED,
+];
+
 export async function listOrders(userId: number, filter: ListOrdersFilter): Promise<PagedOrders> {
-  const where: Record<string, unknown> = { userId };
+  const where: Record<string, unknown> = { userId, userDeletedAt: null };
   if (filter.status) where.status = filter.status;
   const offset = (filter.page - 1) * filter.limit;
   const { rows, count } = await Order.findAndCountAll({
@@ -48,7 +56,7 @@ async function findOwnedOrder(
   transaction?: Transaction,
 ): Promise<Order> {
   const order = await Order.findOne({
-    where: { id, userId },
+    where: { id, userId, userDeletedAt: null },
     include: [
       { model: OrderItem, as: 'items', include: [{ model: Product, as: 'product' }] },
       { model: Address, as: 'address' },
@@ -401,4 +409,60 @@ export async function payOrder(userId: number, id: number): Promise<Order> {
 
 export async function confirmOrder(userId: number, id: number): Promise<Order> {
   return transitionOrder(userId, id, ORDER_STATUS.DONE, 'order.confirm');
+}
+
+/**
+ * Soft-delete a single order from the owning user's list. Only 已完成 / 已取消
+ * orders are eligible — active orders (待支付 / 已支付 / 已发货) stay visible
+ * because they are still on the merchant's side of the workflow.
+ *
+ * Idempotent at the "already hidden" boundary: a repeat call on the same id
+ * returns a 404 via findOwnedOrder (which filters out userDeletedAt !== null),
+ * preventing the caller from silently "re-deleting" and rewriting the
+ * userDeletedAt timestamp.
+ */
+export async function deleteOrderForUser(userId: number, id: number): Promise<void> {
+  const order = await findOwnedOrder(userId, id);
+  const status = order.get('status') as OrderStatus;
+  if (!USER_DELETABLE_STATUSES.includes(status)) {
+    throw new HttpError(400, '仅已完成或已取消的订单可以删除');
+  }
+  order.set('userDeletedAt', new Date());
+  await order.save();
+  audit({
+    event: 'order.user.delete',
+    entity: 'order',
+    entityId: id,
+    details: { userId, orderNo: order.get('orderNo'), status },
+  });
+}
+
+/**
+ * Bulk-delete every completable order the user still has visible. Returns
+ * how many rows were hidden so the frontend can show a count toast.
+ *
+ * Implemented as a single UPDATE rather than a loop so one SQL round-trip
+ * handles however many rows the user has — important if someone with a long
+ * history clicks "clear" and the deletable set is big.
+ */
+export async function deleteCompletedOrdersForUser(userId: number): Promise<number> {
+  const [affected] = await Order.update(
+    { userDeletedAt: new Date() },
+    {
+      where: {
+        userId,
+        userDeletedAt: null,
+        status: { [Op.in]: USER_DELETABLE_STATUSES as OrderStatus[] },
+      },
+    },
+  );
+  if (affected > 0) {
+    audit({
+      event: 'order.user.delete.bulk',
+      entity: 'order',
+      entityId: 0,
+      details: { userId, affected },
+    });
+  }
+  return affected;
 }

@@ -34,13 +34,17 @@ interface OrderAttributes {
   discountAmount: number;
   totalAmount: number;
   status: OrderStatus;
+  // Soft-delete flag. Null = visible to the user; timestamp = hidden from
+  // user's own list and blocked for further user actions. Admin / audit
+  // views ignore this column and keep seeing the row.
+  userDeletedAt: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 type OrderCreationAttributes = Optional<
   OrderAttributes,
-  'id' | 'status' | 'couponId' | 'discountAmount'
+  'id' | 'status' | 'couponId' | 'discountAmount' | 'userDeletedAt'
 >;
 
 export class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
@@ -58,6 +62,7 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> imple
   public discountAmount!: number;
   public totalAmount!: number;
   public status!: OrderStatus;
+  public userDeletedAt!: Date | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -78,6 +83,7 @@ Order.init(
     discountAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
     totalAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: ORDER_STATUS.PENDING },
+    userDeletedAt: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,

@@ -4,8 +4,10 @@ import { Button, Collapse, Dropdown, Empty, List, Pagination, Popconfirm, Select
 import type { MenuProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
+  bulkDeleteCompletedThunk,
   cancelOrderThunk,
   confirmOrderThunk,
+  deleteOrderThunk,
   loadOrders,
   setPage,
   setStatusFilter,
@@ -26,6 +28,16 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   已取消: 'default',
 };
 
+// Only finalised orders are user-deletable. Active ones (待支付 / 已支付 /
+// 已发货) stay in the list because the merchant is still on the hook.
+const USER_DELETABLE: ReadonlySet<OrderStatus> = new Set(['已完成', '已取消']);
+
+// Sentinel used by the "全部" option in the status Select. Empty string so
+// antd can keep value-based comparisons simple; mapped to `null` on the way
+// into the redux store.
+const ALL_STATUSES = '' as const;
+type StatusFilterValue = OrderStatus | typeof ALL_STATUSES;
+
 export default function OrderList(): JSX.Element {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -36,12 +48,27 @@ export default function OrderList(): JSX.Element {
     void dispatch(loadOrders({ status: statusFilter ?? undefined, page, limit }));
   }, [dispatch, statusFilter, page, limit]);
 
-  const handleFilterChange = (value: OrderStatus | null): void => {
-    dispatch(setStatusFilter(value));
+  const handleFilterChange = (value: StatusFilterValue): void => {
+    dispatch(setStatusFilter(value === ALL_STATUSES ? null : value));
   };
 
   const handlePageChange = (next: number): void => {
     dispatch(setPage(next));
+  };
+
+  const handleDelete = async (order: Order): Promise<void> => {
+    await dispatch(deleteOrderThunk(order.id));
+    void message.success('订单已删除');
+  };
+
+  const handleBulkClear = async (): Promise<void> => {
+    const result = await dispatch(bulkDeleteCompletedThunk());
+    if (bulkDeleteCompletedThunk.fulfilled.match(result)) {
+      const affected = result.payload;
+      void message.success(
+        affected === 0 ? '没有可清空的历史订单' : `已清空 ${affected} 条历史订单`,
+      );
+    }
   };
 
   const startPayment = async (
@@ -104,6 +131,19 @@ export default function OrderList(): JSX.Element {
             确认收货
           </Button>,
         ];
+      case '已完成':
+      case '已取消':
+        return [
+          <Popconfirm
+            key="delete"
+            title="确认删除此订单？删除后将从列表中移除，无法恢复"
+            okText="删除"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => void handleDelete(order)}
+          >
+            <Button danger>删除</Button>
+          </Popconfirm>,
+        ];
       default:
         return [];
     }
@@ -122,14 +162,31 @@ export default function OrderList(): JSX.Element {
         }}
       >
         <h1 className="page-title" style={{ margin: 0 }}>我的订单</h1>
-        <Select<OrderStatus | null>
-          allowClear
-          placeholder="全部状态"
-          style={{ width: 160 }}
-          value={statusFilter}
-          onChange={(v) => handleFilterChange(v ?? null)}
-          options={ORDER_STATUS_VALUES.map((s) => ({ label: s, value: s }))}
-        />
+        <Space wrap size={8}>
+          <Popconfirm
+            title="清空所有已完成和已取消的订单？该操作不可恢复"
+            okText="清空"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => void handleBulkClear()}
+            disabled={list.every((o) => !USER_DELETABLE.has(o.status))}
+          >
+            <Button
+              danger
+              disabled={list.every((o) => !USER_DELETABLE.has(o.status))}
+            >
+              清空历史
+            </Button>
+          </Popconfirm>
+          <Select<StatusFilterValue>
+            style={{ width: 160 }}
+            value={statusFilter ?? ALL_STATUSES}
+            onChange={handleFilterChange}
+            options={[
+              { label: '全部', value: ALL_STATUSES },
+              ...ORDER_STATUS_VALUES.map((s) => ({ label: s, value: s })),
+            ]}
+          />
+        </Space>
       </div>
 
       {!loading && list.length === 0 ? (
