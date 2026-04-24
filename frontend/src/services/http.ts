@@ -55,7 +55,11 @@ http.interceptors.response.use(
   },
   (err: AxiosError<ApiResponse<null>>) => {
     const status = err.response?.status;
-    if (status === 401) {
+    // A 401 only means "your session expired" when there was a session to
+    // begin with. 401 on a login/register attempt means "bad credentials"
+    // — surface the backend's message ("邮箱或密码错误") instead of the
+    // misleading "登录已过期" toast.
+    if (status === 401 && getStoredToken()) {
       clearAuth();
       notifyUnauthorized();
       if (!err.config?.skipErrorToast) showUnauthorizedToastOnce();
