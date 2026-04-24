@@ -159,7 +159,7 @@ export default function OrderList(): JSX.Element {
             <Tooltip title="删除订单">
               <Button
                 danger
-                type="primary"
+                type="text"
                 shape="circle"
                 icon={<DeleteOutlined />}
                 aria-label="删除订单"
