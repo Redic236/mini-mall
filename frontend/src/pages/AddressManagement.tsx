@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Button, Empty, Form, Input, List, Modal, Popconfirm, Space, Switch, Tag } from 'antd';
+import {
+  Button,
+  Cascader,
+  Empty,
+  Form,
+  Input,
+  List,
+  Modal,
+  Popconfirm,
+  Space,
+  Switch,
+  Tag,
+} from 'antd';
 import {
   addAddress,
   editAddress,
@@ -10,16 +22,68 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import type { Address, AddressInput } from '@/types';
 
+interface PcaNode {
+  code: string;
+  name: string;
+  children?: PcaNode[];
+}
+
+interface RegionOption {
+  value: string;
+  label: string;
+  children?: RegionOption[];
+}
+
+type AddressFormValues = Omit<AddressInput, 'province' | 'city' | 'district'> & {
+  region: [string, string, string];
+};
+
+function toOptions(nodes: PcaNode[]): RegionOption[] {
+  return nodes.map((n) => ({
+    value: n.name,
+    label: n.name,
+    children: n.children ? toOptions(n.children) : undefined,
+  }));
+}
+
+// Module-level cache — the 134KB dataset only needs to be parsed once per
+// session, even if the user opens the address modal repeatedly.
+let cachedOptions: RegionOption[] | null = null;
+
 export default function AddressManagement(): JSX.Element {
   const dispatch = useAppDispatch();
   const { list, loading } = useAppSelector((s) => s.addresses);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
-  const [form] = Form.useForm<AddressInput>();
+  const [form] = Form.useForm<AddressFormValues>();
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>(
+    cachedOptions ?? [],
+  );
+  const [loadingRegions, setLoadingRegions] = useState(cachedOptions === null);
 
   useEffect(() => {
     void dispatch(loadAddresses());
   }, [dispatch]);
+
+  // Lazy-load the province/city/district dataset the first time the modal
+  // opens — keeps it out of the initial JS chunk (it's a ~134KB JSON).
+  useEffect(() => {
+    if (!open || cachedOptions !== null) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const mod = await import('china-division/dist/pca-code.json');
+        const data = (mod.default ?? mod) as unknown as PcaNode[];
+        cachedOptions = toOptions(data);
+        if (!cancelled) setRegionOptions(cachedOptions);
+      } finally {
+        if (!cancelled) setLoadingRegions(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -29,16 +93,32 @@ export default function AddressManagement(): JSX.Element {
 
   const openEdit = (a: Address): void => {
     setEditing(a);
-    form.setFieldsValue(a);
+    form.setFieldsValue({
+      name: a.name,
+      phone: a.phone,
+      region: [a.province, a.city, a.district],
+      detail: a.detail,
+      isDefault: a.isDefault,
+    });
     setOpen(true);
   };
 
   const handleSubmit = async (): Promise<void> => {
     const values = await form.validateFields();
+    const [province, city, district] = values.region;
+    const payload: AddressInput = {
+      name: values.name,
+      phone: values.phone,
+      province,
+      city,
+      district,
+      detail: values.detail,
+      isDefault: values.isDefault,
+    };
     if (editing) {
-      await dispatch(editAddress({ id: editing.id, input: values }));
+      await dispatch(editAddress({ id: editing.id, input: payload }));
     } else {
-      await dispatch(addAddress(values));
+      await dispatch(addAddress(payload));
     }
     setOpen(false);
   };
@@ -97,21 +177,36 @@ export default function AddressManagement(): JSX.Element {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form<AddressInput> form={form} layout="vertical">
+        <Form<AddressFormValues> form={form} layout="vertical">
           <Form.Item name="name" label="收货人" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item name="phone" label="手机号" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="province" label="省" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="city" label="市" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="district" label="区" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item
+            name="region"
+            label="所在地区（省 / 市 / 区）"
+            rules={[
+              {
+                validator: (_, value) =>
+                  Array.isArray(value) && value.length === 3
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('请选择完整的省 / 市 / 区')),
+              },
+            ]}
+          >
+            <Cascader
+              options={regionOptions}
+              placeholder="点击选择，或输入关键字筛选"
+              loading={loadingRegions}
+              allowClear
+              changeOnSelect={false}
+              showSearch={{
+                filter: (input, path) =>
+                  path.some((opt) => String(opt.label).includes(input.trim())),
+              }}
+            />
           </Form.Item>
           <Form.Item name="detail" label="详细地址" rules={[{ required: true }]}>
             <Input.TextArea rows={2} />
