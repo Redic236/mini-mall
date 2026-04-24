@@ -38,8 +38,12 @@ export function createApp(): Application {
   // Global limiter on all API routes
   app.use('/api', apiRateLimiter);
 
-  // Tight limiter on auth endpoints (brute-force mitigation)
-  app.use('/api/auth', authRateLimiter);
+  // Tight limiter only on the brute-force surfaces. `/api/auth/me` and
+  // `/api/auth/me/avatar` are authenticated user-initiated endpoints, not
+  // credential-guessing targets — sharing the 10-per-15min bucket locked
+  // users out of their own avatar uploads.
+  app.use('/api/auth/login', authRateLimiter);
+  app.use('/api/auth/register', authRateLimiter);
 
   // Stricter limiter on write paths (orders + address mutations + payments).
   // Payments sit here because the sandbox callback is the HMAC-verification

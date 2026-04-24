@@ -32,9 +32,11 @@ export async function uploadAvatar(file: File): Promise<User> {
   form.append('avatar', file);
   return unwrap<User>(
     http.post<ApiResponse<User>>('/auth/me/avatar', form, {
-      // Let the browser set multipart/form-data with the correct boundary —
-      // our shared instance defaults to application/json which would fail.
-      headers: { 'Content-Type': 'multipart/form-data' },
+      // Null strips the shared instance's default `application/json` so the
+      // browser can generate `multipart/form-data; boundary=…` itself.
+      // Passing the literal string `multipart/form-data` would send it
+      // without a boundary and multer would reject the body.
+      headers: { 'Content-Type': null },
     }),
   );
 }
