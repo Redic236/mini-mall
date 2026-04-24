@@ -1,7 +1,22 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, Collapse, Dropdown, Empty, List, Pagination, Popconfirm, Select, Space, Tag, Typography, message } from 'antd';
+import {
+  Button,
+  Collapse,
+  Dropdown,
+  Empty,
+  List,
+  Pagination,
+  Popconfirm,
+  Select,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+  message,
+} from 'antd';
 import type { MenuProps } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import {
   bulkDeleteCompletedThunk,
@@ -141,7 +156,15 @@ export default function OrderList(): JSX.Element {
             okButtonProps={{ danger: true }}
             onConfirm={() => void handleDelete(order)}
           >
-            <Button danger>删除</Button>
+            <Tooltip title="删除订单">
+              <Button
+                danger
+                type="text"
+                shape="circle"
+                icon={<DeleteOutlined />}
+                aria-label="删除订单"
+              />
+            </Tooltip>
           </Popconfirm>,
         ];
       default:
